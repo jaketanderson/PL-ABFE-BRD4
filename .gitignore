@@ -3,5 +3,5 @@ __pycache__/
 .ipynb_checkpoints/
 
 working_data/*
-main.py # Let's only record main.ipynb, and trust that if a script version is made via nbconvert it's not significantly different
+main.py
 results/*

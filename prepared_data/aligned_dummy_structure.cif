@@ -1,5 +1,5 @@
 data_cell
-# Created with OpenMM 8.1.2, 2024-10-13
+# Created with OpenMM 8.1.2, 2024-10-22
 #
 loop_
 _struct_conn.id
