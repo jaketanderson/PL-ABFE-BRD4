@@ -73,7 +73,7 @@ def run_minimization(
         system = XmlSerializer.deserialize(f.read())
 
     restraints.openmm.apply_positional_restraints(
-        f"{directory}/aligned_dummy_structure{suffix}.cif",
+        f"{directory}/aligned_dummy_structure{suffix}.pdb",
         system,
         atom_name="DUM",
         force_group=15,
@@ -101,6 +101,9 @@ def run_minimization(
     simulation.minimizeEnergy(tolerance=tolerance, maxIterations=maxIterations)
 
     positions = simulation.context.getState(getPositions=True).getPositions()
+
+    with open(f"{directory}/minimized.pdb", "w") as f:
+        PDBFile.writeFile(model.topology, positions, f)
 
     with open(f"{directory}/minimized_positions.pickle", "wb") as f:
         pickle.dump(positions, f)
