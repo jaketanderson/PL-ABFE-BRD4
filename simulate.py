@@ -60,15 +60,18 @@ def run_minimization(
     directory = f"{working_data}/{sub_dir_name}/{window}"
     if not os.path.isdir(directory):
         os.makedirs(directory, exist_ok=True)
-    
+
+    if not "release_conf_restraints" in sub_dir_name:
+        from_structure_path = f"{prepared_data}/aligned_dummy_structure{suffix}.pdb"
+    else:
+        from_structure_path = f"{prepared_data}/aligned_dummy_structure{suffix}_open_conf.pdb"
+
     shutil.copy(
-        f"{prepared_data}/aligned_dummy_structure{suffix}.cif",
-        f"{directory}/aligned_dummy_structure{suffix}.cif",
-    )
-    shutil.copy(
-        f"{prepared_data}/aligned_dummy_structure{suffix}.pdb",
+        from_structure_path,
         f"{directory}/aligned_dummy_structure{suffix}.pdb",
     )
+    
+    
     with open(f"{prepared_data}/aligned_dummy_system{suffix}.xml", "r") as f:
         system = XmlSerializer.deserialize(f.read())
 
