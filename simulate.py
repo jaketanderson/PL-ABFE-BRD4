@@ -14,7 +14,7 @@ from paprika import restraints
 from paprika.restraints.openmm import apply_dat_restraint, apply_positional_restraints
 
 
-@ray.remote(num_gpus=1, num_cpus=4)
+@ray.remote(num_gpus=1, num_cpus=1)
 def run_minimization(
     window: str,
     system: openmm.System,
@@ -92,6 +92,9 @@ def run_minimization(
             force_group=10,
         )
 
+    if not any(isinstance(force, CMMotionRemover) for force in system.getForces()):
+        system.addForce(CMMotionRemover())
+        
     with open(f"{directory}/aligned_dummy_system{suffix}.xml", "w") as f:
         f.write(XmlSerializer.serialize(system))
 
@@ -114,7 +117,7 @@ def run_minimization(
     return
 
 
-@ray.remote(num_gpus=1, num_cpus=4)
+@ray.remote(num_gpus=1, num_cpus=1)
 def run_heating_and_equil(
     window: str,
     system: openmm.System,
@@ -204,7 +207,7 @@ def run_heating_and_equil(
     return
 
 
-@ray.remote(num_gpus=1, num_cpus=4)
+@ray.remote(num_gpus=1, num_cpus=1)
 def run_production(
     window: str,
     system: openmm.System,
@@ -280,7 +283,11 @@ def run_production(
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(state_reporter)
 
-    simulation.step(int(production_time / timestep))
+    try:
+        simulation.step(int(production_time / timestep))
+    except Exception as e:
+        with open("/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/ERROR", "a+") as f:
+            f.write(f"Exception {e} happened during window {window}!\n")
     positions = simulation.context.getState(getPositions=True).getPositions()
 
     with open(f"{directory}/production.pdb", "w") as f:
