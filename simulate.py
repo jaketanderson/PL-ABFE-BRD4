@@ -14,7 +14,7 @@ from paprika import restraints
 from paprika.restraints.openmm import apply_dat_restraint, apply_positional_restraints
 
 
-@ray.remote(num_gpus=1, num_cpus=4)
+@ray.remote(num_gpus=1, num_cpus=1)
 def run_minimization(
     window: str,
     system: openmm.System,
@@ -92,12 +92,21 @@ def run_minimization(
             force_group=10,
         )
 
+    to_remove = []
+    for i, force in enumerate(system.getForces()):
+        if isinstance(force, CMMotionRemover):
+            to_remove.append(i)
+    to_remove.sort(reverse=True)
+    for i in to_remove:
+        system.removeForce(i)
+        
     with open(f"{directory}/aligned_dummy_system{suffix}.xml", "w") as f:
         f.write(XmlSerializer.serialize(system))
 
     integrator = LangevinMiddleIntegrator(0 * kelvin, friction, timestep)
+    integrator.setRandomNumberSeed(12345)
     platform = Platform.getPlatformByName("CUDA")
-    properties = {"DeviceIndex": "0", "Precision": "mixed"}
+    properties = {"DeviceIndex": "0"}
     simulation = Simulation(model.topology, system,
                             integrator, platform, properties)
     simulation.context.setPositions(model.positions)
@@ -114,7 +123,7 @@ def run_minimization(
     return
 
 
-@ray.remote(num_gpus=1, num_cpus=4)
+@ray.remote(num_gpus=1, num_cpus=1)
 def run_heating_and_equil(
     window: str,
     system: openmm.System,
@@ -162,6 +171,7 @@ def run_heating_and_equil(
         system = XmlSerializer.deserialize(f.read())
 
     integrator = LangevinMiddleIntegrator(298.15 * kelvin, friction, timestep)
+    integrator.setRandomNumberSeed(12345)
     platform = Platform.getPlatformByName("CUDA")
     properties = {"DeviceIndex": "0", "Precision": "mixed"}
     simulation = Simulation(model.topology, system,
@@ -186,12 +196,16 @@ def run_heating_and_equil(
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(state_reporter)
 
-    for temp in temperatures:
-        integrator.setTemperature(temp * kelvin)
-        simulation.step(int(time_per_temp / timestep))
+    try:
+        for temp in temperatures:
+            integrator.setTemperature(temp * kelvin)
+            simulation.step(int(time_per_temp / timestep))
 
-    simulation.step(int((equilibration_time - (time_per_temp*len(temperatures))) / timestep))
-    positions = simulation.context.getState(getPositions=True).getPositions()
+        simulation.step(int((equilibration_time - (time_per_temp*len(temperatures))) / timestep))
+        positions = simulation.context.getState(getPositions=True).getPositions()
+    except Exception as e:
+        with open("/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/ERROR", "a+") as f:
+            f.write(f"Heating exception {e} happened during window {window}!\n")
 
     with open(f"{directory}/heated.pdb", "w") as f:
         app.PDBFile.writeFile(model.topology, positions, f, keepIds=True)
@@ -204,7 +218,7 @@ def run_heating_and_equil(
     return
 
 
-@ray.remote(num_gpus=1, num_cpus=4)
+@ray.remote(num_gpus=1, num_cpus=1)
 def run_production(
     window: str,
     system: openmm.System,
@@ -255,6 +269,7 @@ def run_production(
         system = XmlSerializer.deserialize(f.read())
 
     integrator = LangevinMiddleIntegrator(temperature, friction, timestep)
+    integrator.setRandomNumberSeed(12345)
     platform = Platform.getPlatformByName("CUDA")
     properties = {"DeviceIndex": "0", "Precision": "mixed"}
     simulation = Simulation(model.topology, system,
@@ -280,7 +295,11 @@ def run_production(
     simulation.reporters.append(dcd_reporter)
     simulation.reporters.append(state_reporter)
 
-    simulation.step(int(production_time / timestep))
+    try:
+        simulation.step(int(production_time / timestep))
+    except Exception as e:
+        with open("/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/ERROR", "a+") as f:
+            f.write(f"Production exception {e} happened during window {window}!\n")
     positions = simulation.context.getState(getPositions=True).getPositions()
 
     with open(f"{directory}/production.pdb", "w") as f:
