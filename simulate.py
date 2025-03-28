@@ -92,13 +92,16 @@ def run_minimization(
             force_group=10,
         )
 
-    to_remove = []
-    for i, force in enumerate(system.getForces()):
-        if isinstance(force, CMMotionRemover):
-            to_remove.append(i)
-    to_remove.sort(reverse=True)
-    for i in to_remove:
-        system.removeForce(i)
+    if not any([isinstance(force, CMMotionRemover) for force in system.getForces()]):
+        system.addForce(CMMotionRemover())
+        
+    # to_remove = []
+    # for i, force in enumerate(system.getForces()):
+    #     if isinstance(force, CMMotionRemover):
+    #         to_remove.append(i)
+    # to_remove.sort(reverse=True)
+    # for i in to_remove:
+    #     system.removeForce(i)
         
     with open(f"{directory}/aligned_dummy_system{suffix}.xml", "w") as f:
         f.write(XmlSerializer.serialize(system))
