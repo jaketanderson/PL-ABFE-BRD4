@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[18]:
+# In[1]:
 
 
 import itertools
@@ -48,7 +48,8 @@ logger.addHandler(stream_handler)
 force_fields = "force_fields"
 initial_data = "initial_data"
 prepared_data = "prepared_data"
-working_data = "/tscc/lustre/ddn/scratch/jta002/working-data2"
+working_data = "/data/ucsd/gilsonlab/jta002/working_data"
+# working_data = "/tscc/lustre/ddn/scratch/jta002/working-data2"
 # working_data = "working_data"
 results_dirname = "results"
 
@@ -62,7 +63,7 @@ data_dir_names = {
 
 # ## Prepare the system
 
-# In[19]:
+# In[2]:
 
 
 def create_protein_mol():
@@ -166,7 +167,7 @@ except:
     protein_mol = create_protein_mol()
 
 
-# In[20]:
+# In[3]:
 
 
 def create_ligand_mol():
@@ -193,7 +194,7 @@ except:
     ligand_mol = create_ligand_mol()
 
 
-# In[21]:
+# In[4]:
 
 
 # from openmmforcefields.generators import (
@@ -212,7 +213,7 @@ except:
 # model.addSolvent(forcefield, padding=1.2*nanometers)
 
 
-# In[22]:
+# In[5]:
 
 
 implicit_solvent = True
@@ -267,7 +268,7 @@ else:
     forcefield.registerTemplateGenerator(gaff.generator)
 
 
-# In[23]:
+# In[6]:
 
 
 import xmltodict
@@ -314,7 +315,7 @@ for i, atom in enumerate(openff_topology.atoms):
 system.addForce(gb_force);
 
 
-# In[24]:
+# In[7]:
 
 
 from paprika.build import align
@@ -333,7 +334,7 @@ align.translate_to_origin(structure)
 align.zalign(structure, A1, A2)
 
 
-# In[25]:
+# In[8]:
 
 
 P1 = f":{110-42}@CA"  # ":ILE@C365x"
@@ -345,7 +346,7 @@ L2 = ":2SJ@C10"  # ":2SJ@C6x"
 L3 = ":2SJ@C19"  # ":2SJ@C19x"
 
 
-# In[26]:
+# In[9]:
 
 
 # Ensure that P1 lies on the YZ plane
@@ -367,7 +368,7 @@ print(f"The new x coordinate of P1 is: {structure[P1].coordinates[0][0]:0.3f}")
 
 model = Modeller(model.topology, structure.positions.in_units_of(nanometer))
 
-# N1_pos is same x and y as L1, but 5 Angstroms less in z
+# N1_pos is same x and y as L1, but 5 Angstroms less in z   NOTE: 3/30/2025 testing this manually set to 7 A less
 N1_pos = Quantity(
     value=Vec3(
         0, 0, (structure[L1].positions[0][2] - 5 * angstroms).value_in_unit(nanometer)
@@ -396,7 +397,7 @@ N3_pos = Quantity(
 )
 
 
-# In[27]:
+# In[10]:
 
 
 # Give the dummy atoms mass of lead (207.2) and set the nonbonded forces for the dummy atoms to have charge 0 and LJ parameters epsilon=sigma=0.
@@ -440,7 +441,7 @@ aligned_dummy_structure = pmd.openmm.load_topology(
 )
 
 
-# In[28]:
+# In[11]:
 
 
 N1 = ":DM1@DUM"
@@ -453,7 +454,7 @@ ASP88_3 = f":{88-42}@C"  # Asp88 C
 ASP88_4 = f":{89-42}@N"  # Ala89 N
 
 
-# In[29]:
+# In[12]:
 
 
 for mask in [
@@ -479,7 +480,7 @@ for mask in [
         print(mask)
 
 
-# In[30]:
+# In[13]:
 
 
 deltaG_values = {}
@@ -487,7 +488,7 @@ deltaG_values = {}
 
 # ## Calculate $\Delta G_{attach,p}$
 
-# In[31]:
+# In[14]:
 
 
 from paprika import restraints
@@ -538,7 +539,7 @@ P1_P2_distance.attach["target"] = openff_unit.Quantity(
     value=np.linalg.norm(P1_P2_vector), units=openff_unit.angstrom
 )
 P1_P2_distance.attach["fraction_list"] = attach_p_fractions * 100
-P1_P2_distance.attach["fc_final"] = 5*1.5  # kilocalorie/(mole*angstrom**2)
+P1_P2_distance.attach["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 P1_P2_distance.initialize()
 
 attach_p_restraints_dynamic.append(P1_P2_distance)
@@ -559,7 +560,7 @@ P2_P3_distance.attach["target"] = openff_unit.Quantity(
     value=np.linalg.norm(P2_P3_vector), units=openff_unit.angstrom
 )
 P2_P3_distance.attach["fraction_list"] = attach_p_fractions * 100
-P2_P3_distance.attach["fc_final"] = 5*1.5  # kilocalorie/(mole*angstrom**2)
+P2_P3_distance.attach["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 P2_P3_distance.initialize()
 
 attach_p_restraints_dynamic.append(P2_P3_distance)
@@ -580,7 +581,7 @@ P1_P3_distance.attach["target"] = openff_unit.Quantity(
     value=np.linalg.norm(P1_P3_vector), units=openff_unit.angstrom
 )
 P1_P3_distance.attach["fraction_list"] = attach_p_fractions * 100
-P1_P3_distance.attach["fc_final"] = 5*1.5  # kilocalorie/(mole*angstrom**2)
+P1_P3_distance.attach["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 P1_P3_distance.initialize()
 
 attach_p_restraints_dynamic.append(P1_P3_distance)
@@ -597,7 +598,7 @@ attach_p_restraints_dynamic.append(P1_P3_distance)
 # Asp88_torsion.amber_index = False
 # Asp88_torsion.attach["target"] = 80  # Degrees
 # Asp88_torsion.attach["fraction_list"] = attach_p_fractions * 100
-# Asp88_torsion.attach["fc_final"] = 20  # kilocalorie/(mole*radian**2)
+# Asp88_torsion.attach["fc_final"] = 20*1.5  # kilocalorie/(mole*radian**2)
 # Asp88_torsion.initialize()
 
 # attach_p_restraints_dynamic.append(Asp88_torsion)
@@ -682,50 +683,35 @@ window_list = restraints.utils.create_window_list(attach_p_restraints_dynamic)
 # _ = ray.get(futures)
 
 
-# In[17]:
+# In[16]:
 
 
-# import paprika.analysis as analysis
+import paprika.analysis as analysis
 
-# free_energy = analysis.fe_calc()
-# free_energy.topology = "heated.pdb"
-# free_energy.trajectory = "production.dcd"
-# free_energy.path = f"{working_data}/attach_p_restraints"
-# free_energy.restraint_list = attach_p_restraints_static + attach_p_restraints_dynamic
-# free_energy.collect_data(single_topology=False)
-# free_energy.methods = ["mbar-autoc"]
-# free_energy.boot_cycles = 1000
-# free_energy.compute_free_energy(phases=["attach"])
-# free_energy.save_results(f"{results_dirname}/deltaG_attach_p.json", overwrite=True)
+free_energy = analysis.fe_calc()
+free_energy.topology = "heated.pdb"
+free_energy.trajectory = "production.dcd"
+free_energy.path = f"{working_data}/attach_p_restraints"
+free_energy.restraint_list = attach_p_restraints_static + attach_p_restraints_dynamic
+free_energy.collect_data(single_topology=False)
+free_energy.methods = ["mbar-autoc"]
+free_energy.boot_cycles = 1000
+free_energy.compute_free_energy(phases=["attach"])
+free_energy.save_results(f"{results_dirname}/deltaG_attach_p.json", overwrite=True)
 
-# deltaG_attach_p = {
-#    "fe": free_energy.results["attach"]["mbar-autoc"]["fe"],
-#    "sem": free_energy.results["attach"]["mbar-autoc"]["sem"],
-#    "fe_matrix": free_energy.results["attach"]["mbar-autoc"]["fe_matrix"],
-#    "sem_matrix": free_energy.results["attach"]["mbar-autoc"]["sem_matrix"],
-# }
-# deltaG_values["deltaG_attach_p"] = deltaG_attach_p
-# print("deltaG_attach_p", deltaG_attach_p)
-
-
-# In[50]:
-
-
-# import json
-# import base64
-
-# with open(f"{results_dirname}/deltaG_attach_l.json", "r") as f:
-#     deltaG_attach_l = json.load(f)
-
-# b64 = deltaG_attach_l["attach"]["mbar-autoc"]["fe_matrix"]["value"]["__ndarray__"]
-# arr = np.frombuffer(base64.b64decode(b64))
-
-# arr.reshape((35,35))
+deltaG_attach_p = {
+   "fe": free_energy.results["attach"]["mbar-autoc"]["fe"],
+   "sem": free_energy.results["attach"]["mbar-autoc"]["sem"],
+   "fe_matrix": free_energy.results["attach"]["mbar-autoc"]["fe_matrix"],
+   "sem_matrix": free_energy.results["attach"]["mbar-autoc"]["sem_matrix"],
+}
+deltaG_values["deltaG_attach_p"] = deltaG_attach_p
+print("deltaG_attach_p", deltaG_attach_p)
 
 
 # ## Calculate $\Delta G_{attach,l}$
 
-# In[ ]:
+# In[15]:
 
 
 from paprika import restraints
@@ -744,42 +730,42 @@ P1_P2_distance = restraints.static_DAT_restraint(
     [P1, P2],
     [len(attach_l_fractions), 0, 0],
     "prepared_data/aligned_dummy_structure.pdb",
-    5*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.angstrom**2),
+    5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.angstrom**2),
     continuous_apr=False,
 )
 P2_P3_distance = restraints.static_DAT_restraint(
     [P2, P3],
     [len(attach_l_fractions), 0, 0],
     "prepared_data/aligned_dummy_structure.pdb",
-    5*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.angstrom**2),
+    5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.angstrom**2),
     continuous_apr=False,
 )
 P1_P3_distance = restraints.static_DAT_restraint(
     [P1, P2],
     [len(attach_l_fractions), 0, 0],
     "prepared_data/aligned_dummy_structure.pdb",
-    5*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.angstrom**2),
+    5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.angstrom**2),
     continuous_apr=False,
 )
-Asp88_torsion = restraints.static_DAT_restraint(
-    [ASP88_1, ASP88_2, ASP88_3, ASP88_4],
-    [len(attach_l_fractions), 0, 0],
-    "prepared_data/aligned_dummy_structure.pdb",
-    20*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
-    continuous_apr=False,
-)
+# Asp88_torsion = restraints.static_DAT_restraint(
+#     [ASP88_1, ASP88_2, ASP88_3, ASP88_4],
+#     [len(attach_l_fractions), 0, 0],
+#     "prepared_data/aligned_dummy_structure.pdb",
+#     20*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
+#     continuous_apr=False,
+# )
 P1_N2_distance = restraints.static_DAT_restraint(
     [P1, N2],
     [len(attach_l_fractions), 0, 0],
     "prepared_data/aligned_dummy_structure.pdb",
-    5*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.angstrom**2),
+    5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.angstrom**2),
     continuous_apr=False,
 )
 P1_N2_N1_angle = restraints.static_DAT_restraint(
     [P1, N2, N1],
     [len(attach_l_fractions), 0, 0],
     "prepared_data/aligned_dummy_structure.pdb",
-    100*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
+    100 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
     continuous_apr=False,
 )
 P2_P1_N2_angle = restraints.static_DAT_restraint(
@@ -793,21 +779,21 @@ P1_N2_N1_N3_torsion = restraints.static_DAT_restraint(
     [P1, N2, N1, N3],
     [len(attach_l_fractions), 0, 0],
     "prepared_data/aligned_dummy_structure.pdb",
-    100*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
+    100*1.5*2 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
     continuous_apr=False,
 )
 P2_P1_N2_N1_torsion = restraints.static_DAT_restraint(
     [P2, P1, N2, N1],
     [len(attach_l_fractions), 0, 0],
-    "pr*1.5epared_data/aligned_dummy_structure.pdb",
+    "prepared_data/aligned_dummy_structure.pdb",
     100 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
     continuous_apr=False,
 )
 P3_P2_P1_N2_torsion = restraints.static_DAT_restraint(
-    [P2, P1, N2, N1],
+    [P3, P2, P1, N2],
     [len(attach_l_fractions), 0, 0],
     "prepared_data/aligned_dummy_structure.pdb",
-    100*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
+    100 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
     continuous_apr=False,
 )
 
@@ -815,13 +801,13 @@ Asp88_torsion_wall_static = restraints.static_DAT_restraint(
     [ASP88_1, ASP88_2, ASP88_3, ASP88_4],
     [len(attach_l_fractions), 0, 0],
     "prepared_data/aligned_dummy_structure.pdb",
-    100*1.5 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
+    100 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
     continuous_apr=False,
 )
 Asp88_torsion_wall_static.custom_restraint_values = {
     "r2": 55.0 * openff_unit.degree,
     "r3": 179.9,
-    "rk2": 20.0*2 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
+    "rk2": 20.0 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
     "rk3": 0.0,
 }
 
@@ -829,14 +815,14 @@ attach_l_restraints_static = [
     P1_P2_distance,
     P2_P3_distance,
     P1_P3_distance,
-    Asp88_torsion,
+    # Asp88_torsion,
     P1_N2_distance,
-    P1_N2_N1_angle,
-    P2_P1_N2_angle,
-    P1_N2_N1_N3_torsion,
-    P2_P1_N2_N1_torsion,
-    P3_P2_P1_N2_torsion,
-    # Asp88_torsion_wall_static,
+    P1_N2_N1_angle,  # A3
+    P2_P1_N2_angle,  # A4
+    P1_N2_N1_N3_torsion,  # T4
+    P2_P1_N2_N1_torsion,  # T5
+    P3_P2_P1_N2_torsion,  # T6
+    Asp88_torsion_wall_static,
 ]
 
 # L1-L2-L3 distances, ligand dihedral when present (NOT PRESENT FOR THIS LIGAND), D1, A1, A2, T1, T2, T3 (Fig. 1a)
@@ -924,7 +910,7 @@ D1_BOUND_VALUE = openff_unit.Quantity(
     value=np.linalg.norm(N1_L1_vector), units=openff_unit.angstrom
 )  # This should be very close to 5A
 N1_L1_distance.attach["fraction_list"] = attach_l_fractions * 100
-N1_L1_distance.attach["fc_final"] = 5*2  # kilocalorie/(mole*angstrom**2)
+N1_L1_distance.attach["fc_final"] = 5/10  # kilocalorie/(mole*angstrom**2)
 N1_L1_distance.attach["fc_initial"] = 0
 N1_L1_distance.initialize()
 attach_l_restraints_dynamic.append(N1_L1_distance)
@@ -944,14 +930,15 @@ N1_N2_vector = np.array(
 N1_L1_vector = np.array(
     aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
 ) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
-N2_N1_L1_angle.attach["target"] = np.degrees(
-    np.arccos(
-        np.dot(N1_N2_vector, N1_L1_vector)
-        / (np.linalg.norm(N1_N2_vector) * np.linalg.norm(N1_L1_vector))
-    )
-)  # Degrees
+# N2_N1_L1_angle.attach["target"] = np.degrees(
+#     np.arccos(
+#         np.dot(N1_N2_vector, N1_L1_vector)
+#         / (np.linalg.norm(N1_N2_vector) * np.linalg.norm(N1_L1_vector))
+#     )
+# )  # Degrees
+N2_N1_L1_angle.attach["target"] = 65  # Degrees
 N2_N1_L1_angle.attach["fraction_list"] = attach_l_fractions * 100
-N2_N1_L1_angle.attach["fc_final"] = 100  # kilocalorie/(mole*radian**2)
+N2_N1_L1_angle.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
 N2_N1_L1_angle.initialize()
 attach_l_restraints_dynamic.append(N2_N1_L1_angle)
 
@@ -970,14 +957,15 @@ L1_N1_vector = np.array(
 L1_L2_vector = np.array(
     aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom)
 ) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
-N1_L1_L2_angle.attach["target"] = np.degrees(
-    np.arccos(
-        np.dot(L1_N1_vector, L1_L2_vector)
-        / (np.linalg.norm(L1_N1_vector) * np.linalg.norm(L1_L2_vector))
-    )
-)  # Degrees
+# N1_L1_L2_angle.attach["target"] = np.degrees(
+#     np.arccos(
+#         np.dot(L1_N1_vector, L1_L2_vector)
+#         / (np.linalg.norm(L1_N1_vector) * np.linalg.norm(L1_L2_vector))
+#     )
+# )  # Degrees
+N1_L1_L2_angle.attach["target"] = 110  # Degrees
 N1_L1_L2_angle.attach["fraction_list"] = attach_l_fractions * 100
-N1_L1_L2_angle.attach["fc_final"] = 100  # kilocalorie/(mole*radian**2)
+N1_L1_L2_angle.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
 N1_L1_L2_angle.initialize()
 attach_l_restraints_dynamic.append(N1_L1_L2_angle)
 
@@ -1003,11 +991,12 @@ N1_L1_vector = np.array(
 norm1, norm2 = np.cross(N3_N2_vector, N2_N1_vector), np.cross(
     N2_N1_vector, N1_L1_vector
 )
-N3_N2_N1_L1_torsion.attach["target"] = np.degrees(
-    np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
-)
+# N3_N2_N1_L1_torsion.attach["target"] = np.degrees(
+#     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
+# )
+N3_N2_N1_L1_torsion.attach["target"] = -55  # Degrees
 N3_N2_N1_L1_torsion.attach["fraction_list"] = attach_l_fractions * 100
-N3_N2_N1_L1_torsion.attach["fc_final"] = 100  # kilocalorie/(mole*radian**2)
+N3_N2_N1_L1_torsion.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
 N3_N2_N1_L1_torsion.initialize()
 attach_l_restraints_dynamic.append(N3_N2_N1_L1_torsion)
 
@@ -1033,11 +1022,12 @@ L1_L2_vector = np.array(
 norm1, norm2 = np.cross(N2_N1_vector, N1_L1_vector), np.cross(
     N1_L1_vector, L1_L2_vector
 )
-N2_N1_L1_L2_torsion.attach["target"] = np.degrees(
-    np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
-)
+# N2_N1_L1_L2_torsion.attach["target"] = np.degrees(
+#     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
+# )
+N2_N1_L1_L2_torsion.attach["target"] = 120  # Degrees
 N2_N1_L1_L2_torsion.attach["fraction_list"] = attach_l_fractions * 100
-N2_N1_L1_L2_torsion.attach["fc_final"] = 100  # kilocalorie/(mole*radian**2)
+N2_N1_L1_L2_torsion.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
 N2_N1_L1_L2_torsion.initialize()
 attach_l_restraints_dynamic.append(N2_N1_L1_L2_torsion)
 
@@ -1063,11 +1053,12 @@ L2_L3_vector = np.array(
 norm1, norm2 = np.cross(N1_L1_vector, L1_L2_vector), np.cross(
     L1_L2_vector, L2_L3_vector
 )
-N1_L1_L2_L3_torsion.attach["target"] = np.degrees(
-    np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
-)
+# N1_L1_L2_L3_torsion.attach["target"] = np.degrees(
+#     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
+# )
+N1_L1_L2_L3_torsion.attach["target"] = 10  # Degrees
 N1_L1_L2_L3_torsion.attach["fraction_list"] = attach_l_fractions * 100
-N1_L1_L2_L3_torsion.attach["fc_final"] = 100
+N1_L1_L2_L3_torsion.attach["fc_final"] = 100/10
 N1_L1_L2_L3_torsion.initialize()
 attach_l_restraints_dynamic.append(N1_L1_L2_L3_torsion)
 
@@ -1078,12 +1069,13 @@ restraints.restraints.check_restraints(attach_l_restraints_dynamic)
 window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
 
 
-# In[ ]:
+# In[16]:
 
 
 # import matplotlib.pyplot as plt
 # from paprika import utils
 # from tqdm import tqdm
+# import mdtraj as md
 
 # i1 = utils.index_from_mask(aligned_dummy_structure, L2)
 # i2 = utils.index_from_mask(aligned_dummy_structure, L3)
@@ -1101,80 +1093,80 @@ window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
 # fig.show()
 
 
-# In[ ]:
+# In[50]:
 
 
-from simulate import run_heating_and_equil, run_minimization, run_production
+# from simulate import run_heating_and_equil, run_minimization, run_production
 
-simulation_parameters = {
-    "k_pos": 50 * kilocalorie / (mole * angstrom**2),
-    "friction": 1 / picosecond,
-    "timestep": 1 * femtoseconds,
-    "tolerance": 0.5 * kilojoules_per_mole / nanometer,
-    "maxIterations": 0,
-}
+# simulation_parameters = {
+#     "k_pos": 50 * kilocalorie / (mole * angstrom**2),
+#     "friction": 1 / picosecond,
+#     "timestep": 1 * femtoseconds,
+#     "tolerance": 0.5 * kilojoules_per_mole / nanometer,
+#     "maxIterations": 0,
+# }
 
-futures = [
-   run_minimization.remote(
-       window,
-       system,
-       model,
-       attach_l_restraints_static + attach_l_restraints_dynamic,
-       "attach_l_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
-
-
-simulation_parameters = {
-    "temperatures": np.arange(0.0, 298.15, 10.0),
-    "time_per_temp": 20 * picoseconds,
-    "equilibration_time": 15 * nanoseconds,
-    "friction": 1 / picosecond,
-    "timestep": 1 * femtoseconds,
-}
-
-futures = [
-   run_heating_and_equil.remote(
-       window,
-       system,
-       model,
-       "attach_l_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#    run_minimization.remote(
+#        window,
+#        system,
+#        model,
+#        attach_l_restraints_static + attach_l_restraints_dynamic,
+#        "attach_l_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
 
 
-simulation_parameters = {
-    "temperature": 298.15,
-    "friction": 1 / picosecond,
-    "timestep": 2 * femtoseconds,
-    "production_time": 25 * nanoseconds,
-    "dcd_reporter_frequency": 1000,
-    "state_reporter_frequency": 1000,
-}
+# simulation_parameters = {
+#     "temperatures": np.arange(0.0, 298.15, 10.0),
+#     "time_per_temp": 20 * picoseconds,
+#     "equilibration_time": 15 * nanoseconds,
+#     "friction": 1 / picosecond,
+#     "timestep": 1 * femtoseconds,
+# }
 
-futures = [
-   run_production.remote(
-       window,
-       system,
-       model,
-       "attach_l_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#    run_heating_and_equil.remote(
+#        window,
+#        system,
+#        model,
+#        "attach_l_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
 
 
-# In[ ]:
+# simulation_parameters = {
+#     "temperature": 298.15,
+#     "friction": 1 / picosecond,
+#     "timestep": 2 * femtoseconds,
+#     "production_time": 25 * nanoseconds,
+#     "dcd_reporter_frequency": 1000,
+#     "state_reporter_frequency": 1000,
+# }
+
+# futures = [
+#    run_production.remote(
+#        window,
+#        system,
+#        model,
+#        "attach_l_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
+
+
+# In[19]:
 
 
 import paprika.analysis as analysis
@@ -1198,7 +1190,16 @@ deltaG_attach_l = {
 deltaG_values["deltaG_attach_l"] = deltaG_attach_l
 print("deltaG_attach_l", deltaG_attach_l)
 
-assert False
+
+# In[17]:
+
+
+# import importlib
+# import analyze
+# from analyze import generate_histograms
+# importlib.reload(analyze)  
+
+# data = generate_histograms(attach_l_restraints_static[:]+attach_l_restraints_dynamic[:], "attach_l_restraints", window_list[:], aligned_dummy_structure, data_dir_names)
 
 
 # ## Calculate $\Delta G_{pull}$
@@ -1278,7 +1279,7 @@ P2_P1_N2_N1_torsion = restraints.static_DAT_restraint(
     continuous_apr=False,
 )
 P3_P2_P1_N2_torsion = restraints.static_DAT_restraint(
-    [P2, P1, N2, N1],
+    [P3, P2, P1, N2],
     [0, len(pull_distances), 0],
     "prepared_data/aligned_dummy_structure.pdb",
     100 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
@@ -1392,7 +1393,7 @@ N1_L1_distance.topology = aligned_dummy_structure
 N1_L1_distance.auto_apr = False
 N1_L1_distance.continuous_apr = False
 N1_L1_distance.amber_index = False
-N1_L1_distance.pull["fc"] = 5  # kilocalorie/(mole*angstrom**2)
+N1_L1_distance.pull["fc"] = 5/2  # kilocalorie/(mole*angstrom**2)
 # N1_L1_distance.pull["target_initial"] = D1_BOUND_VALUE
 # N1_L1_distance.pull["target_final"] = 5
 # N1_L1_distance.pull["target_increment"] = 0.4
@@ -1660,7 +1661,7 @@ L1_L2_vector = [val.value_in_unit(angstrom) for val in L1_L2_vector]
 # )
 L1_L2_distance.release["target"] = openff_unit.Quantity(value=6.44443786813187, units=openff_unit.angstrom)
 L1_L2_distance.release["fraction_list"] = release_l_fractions * 100
-L1_L2_distance.release["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
+L1_L2_distance.release["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 L1_L2_distance.initialize()
 release_l_restraints_dynamic.append(L1_L2_distance)
 
@@ -1681,7 +1682,7 @@ L2_L3_vector = [val.value_in_unit(angstrom) for val in L2_L3_vector]
 # )
 L2_L3_distance.release["target"] = openff_unit.Quantity(value=5.4634763006993, units=openff_unit.angstrom)
 L2_L3_distance.release["fraction_list"] = release_l_fractions * 100
-L2_L3_distance.release["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
+L2_L3_distance.release["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 L2_L3_distance.initialize()
 release_l_restraints_dynamic.append(L2_L3_distance)
 
@@ -1702,174 +1703,174 @@ L1_L3_vector = [val.value_in_unit(angstrom) for val in L1_L3_vector]
 # )
 L1_L3_distance.release["target"] = openff_unit.Quantity(value=6.68343042057942, units=openff_unit.angstrom)
 L1_L3_distance.release["fraction_list"] = release_l_fractions * 100
-L1_L3_distance.release["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
+L1_L3_distance.release["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 L1_L3_distance.initialize()
 release_l_restraints_dynamic.append(L1_L3_distance)
 
-# D1
-N1_L1_distance = restraints.DAT_restraint()
-N1_L1_distance.mask1 = N1
-N1_L1_distance.mask2 = L1
-N1_L1_distance.topology = aligned_dummy_structure
-N1_L1_distance.auto_apr = False
-N1_L1_distance.continuous_apr = False
-N1_L1_distance.amber_index = False
-N1_L1_vector = (
-    aligned_dummy_structure[L1].positions[0] - aligned_dummy_structure[N1].positions[0]
-)
-N1_L1_vector = [val.value_in_unit(angstrom) for val in N1_L1_vector]
-N1_L1_distance.release["target"] = openff_unit.Quantity(
-    value=np.linalg.norm(N1_L1_vector), units=openff_unit.angstrom
-)
-D1_BOUND_VALUE = openff_unit.Quantity(
-    value=np.linalg.norm(N1_L1_vector), units=openff_unit.angstrom
-)  # This should be very close to 5A
-N1_L1_distance.release["fraction_list"] = release_l_fractions * 100
-N1_L1_distance.release["fc_final"] = 5*2  # kilocalorie/(mole*angstrom**2)
-N1_L1_distance.initialize()
-release_l_restraints_dynamic.append(N1_L1_distance)
+# # D1
+# N1_L1_distance = restraints.DAT_restraint()
+# N1_L1_distance.mask1 = N1
+# N1_L1_distance.mask2 = L1
+# N1_L1_distance.topology = aligned_dummy_structure
+# N1_L1_distance.auto_apr = False
+# N1_L1_distance.continuous_apr = False
+# N1_L1_distance.amber_index = False
+# N1_L1_vector = (
+#     aligned_dummy_structure[L1].positions[0] - aligned_dummy_structure[N1].positions[0]
+# )
+# N1_L1_vector = [val.value_in_unit(angstrom) for val in N1_L1_vector]
+# N1_L1_distance.release["target"] = openff_unit.Quantity(
+#     value=np.linalg.norm(N1_L1_vector), units=openff_unit.angstrom
+# )
+# D1_BOUND_VALUE = openff_unit.Quantity(
+#     value=np.linalg.norm(N1_L1_vector), units=openff_unit.angstrom
+# )  # This should be very close to 5A
+# N1_L1_distance.release["fraction_list"] = release_l_fractions * 100
+# N1_L1_distance.release["fc_final"] = 5*2  # kilocalorie/(mole*angstrom**2)
+# N1_L1_distance.initialize()
+# release_l_restraints_dynamic.append(N1_L1_distance)
 
-# A1
-N2_N1_L1_angle = restraints.DAT_restraint()
-N2_N1_L1_angle.mask1 = N2
-N2_N1_L1_angle.mask2 = N1
-N2_N1_L1_angle.mask3 = L1
-N2_N1_L1_angle.topology = aligned_dummy_structure
-N2_N1_L1_angle.auto_apr = False
-N2_N1_L1_angle.continuous_apr = False
-N2_N1_L1_angle.amber_index = False
-N1_N2_vector = np.array(
-    aligned_dummy_structure[N2].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
-N1_L1_vector = np.array(
-    aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
-N2_N1_L1_angle.release["target"] = np.degrees(
-    np.arccos(
-        np.dot(N1_N2_vector, N1_L1_vector)
-        / (np.linalg.norm(N1_N2_vector) * np.linalg.norm(N1_L1_vector))
-    )
-)  # Degrees
-N2_N1_L1_angle.release["fraction_list"] = release_l_fractions * 100
-N2_N1_L1_angle.release["fc_final"] = 100  # kilocalorie/(mole*radian**2)
-N2_N1_L1_angle.initialize()
-release_l_restraints_dynamic.append(N2_N1_L1_angle)
+# # A1
+# N2_N1_L1_angle = restraints.DAT_restraint()
+# N2_N1_L1_angle.mask1 = N2
+# N2_N1_L1_angle.mask2 = N1
+# N2_N1_L1_angle.mask3 = L1
+# N2_N1_L1_angle.topology = aligned_dummy_structure
+# N2_N1_L1_angle.auto_apr = False
+# N2_N1_L1_angle.continuous_apr = False
+# N2_N1_L1_angle.amber_index = False
+# N1_N2_vector = np.array(
+#     aligned_dummy_structure[N2].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
+# N1_L1_vector = np.array(
+#     aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
+# N2_N1_L1_angle.release["target"] = np.degrees(
+#     np.arccos(
+#         np.dot(N1_N2_vector, N1_L1_vector)
+#         / (np.linalg.norm(N1_N2_vector) * np.linalg.norm(N1_L1_vector))
+#     )
+# )  # Degrees
+# N2_N1_L1_angle.release["fraction_list"] = release_l_fractions * 100
+# N2_N1_L1_angle.release["fc_final"] = 100  # kilocalorie/(mole*radian**2)
+# N2_N1_L1_angle.initialize()
+# release_l_restraints_dynamic.append(N2_N1_L1_angle)
 
-# A2
-N1_L1_L2_angle = restraints.DAT_restraint()
-N1_L1_L2_angle.mask1 = N1
-N1_L1_L2_angle.mask2 = L1
-N1_L1_L2_angle.mask3 = L2
-N1_L1_L2_angle.topology = aligned_dummy_structure
-N1_L1_L2_angle.auto_apr = False
-N1_L1_L2_angle.continuous_apr = False
-N1_L1_L2_angle.amber_index = False
-L1_N1_vector = np.array(
-    aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
-L1_L2_vector = np.array(
-    aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
-N1_L1_L2_angle.release["target"] = np.degrees(
-    np.arccos(
-        np.dot(L1_N1_vector, L1_L2_vector)
-        / (np.linalg.norm(L1_N1_vector) * np.linalg.norm(L1_L2_vector))
-    )
-)  # Degrees
-N1_L1_L2_angle.release["fraction_list"] = release_l_fractions * 100
-N1_L1_L2_angle.release["fc_final"] = 100  # kilocalorie/(mole*radian**2)
-N1_L1_L2_angle.initialize()
-release_l_restraints_dynamic.append(N1_L1_L2_angle)
+# # A2
+# N1_L1_L2_angle = restraints.DAT_restraint()
+# N1_L1_L2_angle.mask1 = N1
+# N1_L1_L2_angle.mask2 = L1
+# N1_L1_L2_angle.mask3 = L2
+# N1_L1_L2_angle.topology = aligned_dummy_structure
+# N1_L1_L2_angle.auto_apr = False
+# N1_L1_L2_angle.continuous_apr = False
+# N1_L1_L2_angle.amber_index = False
+# L1_N1_vector = np.array(
+#     aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
+# L1_L2_vector = np.array(
+#     aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
+# N1_L1_L2_angle.release["target"] = np.degrees(
+#     np.arccos(
+#         np.dot(L1_N1_vector, L1_L2_vector)
+#         / (np.linalg.norm(L1_N1_vector) * np.linalg.norm(L1_L2_vector))
+#     )
+# )  # Degrees
+# N1_L1_L2_angle.release["fraction_list"] = release_l_fractions * 100
+# N1_L1_L2_angle.release["fc_final"] = 100  # kilocalorie/(mole*radian**2)
+# N1_L1_L2_angle.initialize()
+# release_l_restraints_dynamic.append(N1_L1_L2_angle)
 
-# T1
-N3_N2_N1_L1_torsion = restraints.DAT_restraint()
-N3_N2_N1_L1_torsion.mask1 = N3
-N3_N2_N1_L1_torsion.mask2 = N2
-N3_N2_N1_L1_torsion.mask3 = N1
-N3_N2_N1_L1_torsion.mask4 = L1
-N3_N2_N1_L1_torsion.topology = aligned_dummy_structure
-N3_N2_N1_L1_torsion.auto_apr = False
-N3_N2_N1_L1_torsion.continuous_apr = False
-N3_N2_N1_L1_torsion.amber_index = False
-N3_N2_vector = np.array(
-    aligned_dummy_structure[N2].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[N3].positions[0].value_in_unit(angstrom))
-N2_N1_vector = np.array(
-    aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[N2].positions[0].value_in_unit(angstrom))
-N1_L1_vector = np.array(
-    aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
-norm1, norm2 = np.cross(N3_N2_vector, N2_N1_vector), np.cross(
-    N2_N1_vector, N1_L1_vector
-)
-N3_N2_N1_L1_torsion.release["target"] = np.degrees(
-    np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
-)
-N3_N2_N1_L1_torsion.release["fraction_list"] = release_l_fractions * 100
-N3_N2_N1_L1_torsion.release["fc_final"] = 100  # kilocalorie/(mole*radian**2)
-N3_N2_N1_L1_torsion.initialize()
-release_l_restraints_dynamic.append(N3_N2_N1_L1_torsion)
+# # T1
+# N3_N2_N1_L1_torsion = restraints.DAT_restraint()
+# N3_N2_N1_L1_torsion.mask1 = N3
+# N3_N2_N1_L1_torsion.mask2 = N2
+# N3_N2_N1_L1_torsion.mask3 = N1
+# N3_N2_N1_L1_torsion.mask4 = L1
+# N3_N2_N1_L1_torsion.topology = aligned_dummy_structure
+# N3_N2_N1_L1_torsion.auto_apr = False
+# N3_N2_N1_L1_torsion.continuous_apr = False
+# N3_N2_N1_L1_torsion.amber_index = False
+# N3_N2_vector = np.array(
+#     aligned_dummy_structure[N2].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[N3].positions[0].value_in_unit(angstrom))
+# N2_N1_vector = np.array(
+#     aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[N2].positions[0].value_in_unit(angstrom))
+# N1_L1_vector = np.array(
+#     aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
+# norm1, norm2 = np.cross(N3_N2_vector, N2_N1_vector), np.cross(
+#     N2_N1_vector, N1_L1_vector
+# )
+# N3_N2_N1_L1_torsion.release["target"] = np.degrees(
+#     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
+# )
+# N3_N2_N1_L1_torsion.release["fraction_list"] = release_l_fractions * 100
+# N3_N2_N1_L1_torsion.release["fc_final"] = 100  # kilocalorie/(mole*radian**2)
+# N3_N2_N1_L1_torsion.initialize()
+# release_l_restraints_dynamic.append(N3_N2_N1_L1_torsion)
 
-# T2
-N2_N1_L1_L2_torsion = restraints.DAT_restraint()
-N2_N1_L1_L2_torsion.mask1 = N2
-N2_N1_L1_L2_torsion.mask2 = N1
-N2_N1_L1_L2_torsion.mask3 = L1
-N2_N1_L1_L2_torsion.mask4 = L2
-N2_N1_L1_L2_torsion.topology = aligned_dummy_structure
-N2_N1_L1_L2_torsion.auto_apr = False
-N2_N1_L1_L2_torsion.continuous_apr = False
-N2_N1_L1_L2_torsion.amber_index = False
-N2_N1_vector = np.array(
-    aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[N2].positions[0].value_in_unit(angstrom))
-N1_L1_vector = np.array(
-    aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
-L1_L2_vector = np.array(
-    aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
-norm1, norm2 = np.cross(N2_N1_vector, N1_L1_vector), np.cross(
-    N1_L1_vector, L1_L2_vector
-)
-N2_N1_L1_L2_torsion.release["target"] = np.degrees(
-    np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
-)
-N2_N1_L1_L2_torsion.release["fraction_list"] = release_l_fractions * 100
-N2_N1_L1_L2_torsion.release["fc_final"] = 100  # kilocalorie/(mole*radian**2)
-N2_N1_L1_L2_torsion.initialize()
-release_l_restraints_dynamic.append(N2_N1_L1_L2_torsion)
+# # T2
+# N2_N1_L1_L2_torsion = restraints.DAT_restraint()
+# N2_N1_L1_L2_torsion.mask1 = N2
+# N2_N1_L1_L2_torsion.mask2 = N1
+# N2_N1_L1_L2_torsion.mask3 = L1
+# N2_N1_L1_L2_torsion.mask4 = L2
+# N2_N1_L1_L2_torsion.topology = aligned_dummy_structure
+# N2_N1_L1_L2_torsion.auto_apr = False
+# N2_N1_L1_L2_torsion.continuous_apr = False
+# N2_N1_L1_L2_torsion.amber_index = False
+# N2_N1_vector = np.array(
+#     aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[N2].positions[0].value_in_unit(angstrom))
+# N1_L1_vector = np.array(
+#     aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
+# L1_L2_vector = np.array(
+#     aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
+# norm1, norm2 = np.cross(N2_N1_vector, N1_L1_vector), np.cross(
+#     N1_L1_vector, L1_L2_vector
+# )
+# N2_N1_L1_L2_torsion.release["target"] = np.degrees(
+#     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
+# )
+# N2_N1_L1_L2_torsion.release["fraction_list"] = release_l_fractions * 100
+# N2_N1_L1_L2_torsion.release["fc_final"] = 100  # kilocalorie/(mole*radian**2)
+# N2_N1_L1_L2_torsion.initialize()
+# release_l_restraints_dynamic.append(N2_N1_L1_L2_torsion)
 
-# T3
-N1_L1_L2_L3_torsion = restraints.DAT_restraint()
-N1_L1_L2_L3_torsion.mask1 = N1
-N1_L1_L2_L3_torsion.mask2 = L1
-N1_L1_L2_L3_torsion.mask3 = L2
-N1_L1_L2_L3_torsion.mask4 = L3
-N1_L1_L2_L3_torsion.topology = aligned_dummy_structure
-N1_L1_L2_L3_torsion.auto_apr = False
-N1_L1_L2_L3_torsion.continuous_apr = False
-N1_L1_L2_L3_torsion.amber_index = False
-N1_L1_vector = np.array(
-    aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
-L1_L2_vector = np.array(
-    aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
-L2_L3_vector = np.array(
-    aligned_dummy_structure[L3].positions[0].value_in_unit(angstrom)
-) - np.array(aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom))
-norm1, norm2 = np.cross(N1_L1_vector, L1_L2_vector), np.cross(
-    L1_L2_vector, L2_L3_vector
-)
-N1_L1_L2_L3_torsion.release["target"] = np.degrees(
-    np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
-)
-N1_L1_L2_L3_torsion.release["fraction_list"] = release_l_fractions * 100
-N1_L1_L2_L3_torsion.release["fc_final"] = 100
-N1_L1_L2_L3_torsion.initialize()
-release_l_restraints_dynamic.append(N1_L1_L2_L3_torsion)
+# # T3
+# N1_L1_L2_L3_torsion = restraints.DAT_restraint()
+# N1_L1_L2_L3_torsion.mask1 = N1
+# N1_L1_L2_L3_torsion.mask2 = L1
+# N1_L1_L2_L3_torsion.mask3 = L2
+# N1_L1_L2_L3_torsion.mask4 = L3
+# N1_L1_L2_L3_torsion.topology = aligned_dummy_structure
+# N1_L1_L2_L3_torsion.auto_apr = False
+# N1_L1_L2_L3_torsion.continuous_apr = False
+# N1_L1_L2_L3_torsion.amber_index = False
+# N1_L1_vector = np.array(
+#     aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[N1].positions[0].value_in_unit(angstrom))
+# L1_L2_vector = np.array(
+#     aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[L1].positions[0].value_in_unit(angstrom))
+# L2_L3_vector = np.array(
+#     aligned_dummy_structure[L3].positions[0].value_in_unit(angstrom)
+# ) - np.array(aligned_dummy_structure[L2].positions[0].value_in_unit(angstrom))
+# norm1, norm2 = np.cross(N1_L1_vector, L1_L2_vector), np.cross(
+#     L1_L2_vector, L2_L3_vector
+# )
+# N1_L1_L2_L3_torsion.release["target"] = np.degrees(
+#     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
+# )
+# N1_L1_L2_L3_torsion.release["fraction_list"] = release_l_fractions * 100
+# N1_L1_L2_L3_torsion.release["fc_final"] = 100
+# N1_L1_L2_L3_torsion.initialize()
+# release_l_restraints_dynamic.append(N1_L1_L2_L3_torsion)
 
 
 # Check restraints and create windows from dynamic restraints
@@ -2178,7 +2179,7 @@ P1_P2_distance.release["target"] = openff_unit.Quantity(
     value=np.linalg.norm(P1_P2_vector), units=openff_unit.angstrom
 )
 P1_P2_distance.release["fraction_list"] = release_p_fractions * 100
-P1_P2_distance.release["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
+P1_P2_distance.release["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 P1_P2_distance.initialize()
 
 release_p_restraints_dynamic.append(P1_P2_distance)
@@ -2199,7 +2200,7 @@ P2_P3_distance.release["target"] = openff_unit.Quantity(
     value=np.linalg.norm(P2_P3_vector), units=openff_unit.angstrom
 )
 P2_P3_distance.release["fraction_list"] = release_p_fractions * 100
-P2_P3_distance.release["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
+P2_P3_distance.release["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 P2_P3_distance.initialize()
 
 release_p_restraints_dynamic.append(P2_P3_distance)
@@ -2220,27 +2221,27 @@ P1_P3_distance.release["target"] = openff_unit.Quantity(
     value=np.linalg.norm(P1_P3_vector), units=openff_unit.angstrom
 )
 P1_P3_distance.release["fraction_list"] = release_p_fractions * 100
-P1_P3_distance.release["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
+P1_P3_distance.release["fc_final"] = 5  # kilocalorie/(mole*angstrom**2)
 P1_P3_distance.initialize()
 
 release_p_restraints_dynamic.append(P1_P3_distance)
 
 
-Asp88_torsion = restraints.DAT_restraint()
-Asp88_torsion.mask1 = ASP88_1
-Asp88_torsion.mask2 = ASP88_2
-Asp88_torsion.mask3 = ASP88_3
-Asp88_torsion.mask4 = ASP88_4
-Asp88_torsion.topology = aligned_dummy_structure
-Asp88_torsion.auto_apr = False
-Asp88_torsion.continuous_apr = False
-Asp88_torsion.amber_index = False
-Asp88_torsion.release["target"] = 80  # Degrees
-Asp88_torsion.release["fraction_list"] = release_p_fractions * 100
-Asp88_torsion.release["fc_final"] = 20  # kilocalorie/(mole*radian**2)
-Asp88_torsion.initialize()
+# Asp88_torsion = restraints.DAT_restraint()
+# Asp88_torsion.mask1 = ASP88_1
+# Asp88_torsion.mask2 = ASP88_2
+# Asp88_torsion.mask3 = ASP88_3
+# Asp88_torsion.mask4 = ASP88_4
+# Asp88_torsion.topology = aligned_dummy_structure
+# Asp88_torsion.auto_apr = False
+# Asp88_torsion.continuous_apr = False
+# Asp88_torsion.amber_index = False
+# Asp88_torsion.release["target"] = 80  # Degrees
+# Asp88_torsion.release["fraction_list"] = release_p_fractions * 100
+# Asp88_torsion.release["fc_final"] = 20*1.5  # kilocalorie/(mole*radian**2)
+# Asp88_torsion.initialize()
 
-release_p_restraints_dynamic.append(Asp88_torsion)
+# release_p_restraints_dynamic.append(Asp88_torsion)
 
 
 # Check restraints and create windows from dynamic restraints
@@ -2361,12 +2362,6 @@ print("deltaG_release_p", deltaG_release_p)
 
 with open(f"{results_dirname}/results.pickle", "wb") as f:
    pickle.dump(deltaG_values, f)
-
-
-# In[ ]:
-
-
-deltaG_values["deltaG_release_l"]
 
 
 # In[ ]:

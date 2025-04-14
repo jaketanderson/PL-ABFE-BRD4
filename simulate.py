@@ -163,8 +163,8 @@ def run_heating_and_equil(
     defaults.update(simulation_parameters)
 
     temperatures = defaults["temperatures"]
-    time_per_temp = defaults["time_per_temp"]
-    equilibration_time = defaults["equilibration_time"]
+    time_per_temp = defaults["time_per_temp"] / 10
+    equilibration_time = defaults["equilibration_time"] / 10
     friction = defaults["friction"]
     timestep = defaults["timestep"]
 
@@ -261,7 +261,7 @@ def run_production(
     temperature = defaults["temperature"]
     friction = defaults["friction"]
     timestep = defaults["timestep"]
-    production_time = defaults["production_time"]
+    production_time = defaults["production_time"] / 10
     dcd_reporter_frequency = defaults["dcd_reporter_frequency"]
     state_reporter_frequency = defaults["state_reporter_frequency"]
 
