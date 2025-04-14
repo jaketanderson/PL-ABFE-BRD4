@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import itertools
@@ -12,6 +12,7 @@ import shutil
 import sys
 from copy import deepcopy
 from importlib import reload
+import xmltodict
 
 import numpy as np
 import parmed as pmd
@@ -61,9 +62,68 @@ data_dir_names = {
 }
 
 
+# In[ ]:
+
+
+def add_CustomGB_force(xml_filename: str, system: openmm.System):
+    with open(xml_filename, "r") as f:
+        ff_xml = f.read()
+    ff_dict = xmltodict.parse(ff_xml)
+    
+    gb_force = openmm.CustomGBForce()
+    
+    gb_force.addPerParticleParameter("q")
+    gb_force.addPerParticleParameter("radius")
+    gb_force.addPerParticleParameter("scale")
+    gb_force.addPerParticleParameter("isntDummy")
+    gb_force.addGlobalParameter("solventDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solvent_dielectric"]))
+    gb_force.addGlobalParameter("soluteDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solute_dielectric"]))
+    gb_force.addComputedValue("I", "select(step(r+sr2-or1), 0.5*(1/L-1/U+0.25*(r-sr2^2/r)*(1/(U^2)-1/(L^2))+0.5*log(L/U)/r), 0);"
+                                  "U=r+sr2;"
+                                  "C=2*(1/or1-1/L)*step(sr2-r-or1);"
+                                  "L=max(or1, D);"
+                                  "D=abs(r-sr2);"
+                                  "sr2 = scale2*or2;"
+                                  "or1 = radius1-0.009; or2 = radius2-0.009", CustomGBForce.ParticlePairNoExclusions)
+
+    if ff_dict["SMIRNOFF"]["CustomGBSA"]["@gb_model"] == "OBC":
+        gb_force.addComputedValue("B", f"1/(1/or-tanh({float(ff_dict['SMIRNOFF']['CustomGBSA']['@alpha'])}*psi-{float(ff_dict['SMIRNOFF']['CustomGBSA']['@beta'])}*psi^2+{float(ff_dict['SMIRNOFF']['CustomGBSA']['@gamma'])}*psi^3)/radius);"
+                                      "psi=I*or; or=radius-0.009", CustomGBForce.SingleParticle)
+
+    elif ff_dict["SMIRNOFF"]["CustomGBSA"]["@gb_model"] == "OBC_Logistic":
+        effective_radii = [
+                "logistic_curve;",
+                f"logistic_curve=(A+(K-A)/((1+nu*exp(b*(inflec-(psi))))^(1/nu)));",
+                f"A=radius; K=((or)^(-1) - (radius)^(-1))^(-1); nu={float(ff_dict['SMIRNOFF']['CustomGBSA']['@nu'])}; b={float(ff_dict['SMIRNOFF']['CustomGBSA']['@b'])}; inflec={float(ff_dict['SMIRNOFF']['CustomGBSA']['@inflec'])};",
+                f"psi=I*or; radius-0.009;",
+        ]
+        gb_force.addComputedValue("B", "".join(effective_radii), CustomGBForce.SingleParticle)
+    
+    gb_force.addEnergyTerm("isntDummy*28.3919551*(radius+0.14)^2*(radius/B)^6-0.5*138.935456*(1/soluteDielectric-1/solventDielectric)*q^2/B",
+                          CustomGBForce.SingleParticle)
+    gb_force.addEnergyTerm("-138.935456*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;"
+                          "f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)))", CustomGBForce.ParticlePair);
+    
+    matches = []
+    for smirks_dict in ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"]:
+        matches.append([match[0] for match in protein_mol.chemical_environment_matches(smirks_dict["@smirks"])] + [match[0] + protein_mol.n_atoms for match in ligand_mol.chemical_environment_matches(smirks_dict["@smirks"])])
+    
+    for i, atom in enumerate(openff_topology.atoms):
+        for j, match_list in enumerate(matches):
+            if i in match_list:
+                specific_atom_data = ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"][j]
+        q = atom.partial_charge.m_as(openff_unit.elementary_charge)
+        radius = float(specific_atom_data["@radius"].split("*")[0])
+        scale = float(specific_atom_data["@scale"])
+        isnt_dummy = 1
+        gb_force.addParticle((q, radius, scale, isnt_dummy))
+    
+    system.addForce(gb_force);
+
+
 # ## Prepare the system
 
-# In[2]:
+# In[ ]:
 
 
 def create_protein_mol():
@@ -167,7 +227,7 @@ except:
     protein_mol = create_protein_mol()
 
 
-# In[3]:
+# In[ ]:
 
 
 def create_ligand_mol():
@@ -194,7 +254,7 @@ except:
     ligand_mol = create_ligand_mol()
 
 
-# In[4]:
+# In[ ]:
 
 
 # from openmmforcefields.generators import (
@@ -213,7 +273,7 @@ except:
 # model.addSolvent(forcefield, padding=1.2*nanometers)
 
 
-# In[5]:
+# In[ ]:
 
 
 implicit_solvent = True
@@ -268,54 +328,13 @@ else:
     forcefield.registerTemplateGenerator(gaff.generator)
 
 
-# In[6]:
+# In[ ]:
 
 
-import xmltodict
-with open(f"{force_fields}/GBSA-OBC2.offxml", "r") as f:
-    ff_xml = f.read()
-ff_dict = xmltodict.parse(ff_xml)
-
-gb_force = openmm.CustomGBForce()
-
-gb_force.addPerParticleParameter("q")
-gb_force.addPerParticleParameter("radius")
-gb_force.addPerParticleParameter("scale")
-gb_force.addPerParticleParameter("isntDummy")
-gb_force.addGlobalParameter("solventDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solvent_dielectric"]))
-gb_force.addGlobalParameter("soluteDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solute_dielectric"]))
-gb_force.addComputedValue("I", "select(step(r+sr2-or1), 0.5*(1/L-1/U+0.25*(r-sr2^2/r)*(1/(U^2)-1/(L^2))+0.5*log(L/U)/r), 0);"
-                              "U=r+sr2;"
-                              "C=2*(1/or1-1/L)*step(sr2-r-or1);"
-                              "L=max(or1, D);"
-                              "D=abs(r-sr2);"
-                              "sr2 = scale2*or2;"
-                              "or1 = radius1-0.009; or2 = radius2-0.009", CustomGBForce.ParticlePairNoExclusions)
-gb_force.addComputedValue("B", f"1/(1/or-tanh({float(ff_dict['SMIRNOFF']['CustomGBSA']['@alpha'])}*psi-{float(ff_dict['SMIRNOFF']['CustomGBSA']['@beta'])}*psi^2+{float(ff_dict['SMIRNOFF']['CustomGBSA']['@gamma'])}*psi^3)/radius);"
-                              "psi=I*or; or=radius-0.009", CustomGBForce.SingleParticle)
-gb_force.addEnergyTerm("isntDummy*28.3919551*(radius+0.14)^2*(radius/B)^6-0.5*138.935456*(1/soluteDielectric-1/solventDielectric)*q^2/B",
-                      CustomGBForce.SingleParticle)
-gb_force.addEnergyTerm("-138.935456*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;"
-                      "f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)))", CustomGBForce.ParticlePair);
-
-matches = []
-for smirks_dict in ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"]:
-    matches.append([match[0] for match in protein_mol.chemical_environment_matches(smirks_dict["@smirks"])] + [match[0] + protein_mol.n_atoms for match in ligand_mol.chemical_environment_matches(smirks_dict["@smirks"])])
-
-for i, atom in enumerate(openff_topology.atoms):
-    for j, match_list in enumerate(matches):
-        if i in match_list:
-            specific_atom_data = ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"][j]
-    q = atom.partial_charge.m_as(openff_unit.elementary_charge)
-    radius = float(specific_atom_data["@radius"].split("*")[0])
-    scale = float(specific_atom_data["@scale"])
-    isnt_dummy = 1
-    gb_force.addParticle((q, radius, scale, isnt_dummy))
-
-system.addForce(gb_force);
+add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
 
 
-# In[7]:
+# In[ ]:
 
 
 from paprika.build import align
@@ -334,7 +353,7 @@ align.translate_to_origin(structure)
 align.zalign(structure, A1, A2)
 
 
-# In[8]:
+# In[ ]:
 
 
 P1 = f":{110-42}@CA"  # ":ILE@C365x"
@@ -346,7 +365,7 @@ L2 = ":2SJ@C10"  # ":2SJ@C6x"
 L3 = ":2SJ@C19"  # ":2SJ@C19x"
 
 
-# In[9]:
+# In[ ]:
 
 
 # Ensure that P1 lies on the YZ plane
@@ -397,7 +416,7 @@ N3_pos = Quantity(
 )
 
 
-# In[10]:
+# In[ ]:
 
 
 # Give the dummy atoms mass of lead (207.2) and set the nonbonded forces for the dummy atoms to have charge 0 and LJ parameters epsilon=sigma=0.
@@ -441,7 +460,7 @@ aligned_dummy_structure = pmd.openmm.load_topology(
 )
 
 
-# In[11]:
+# In[ ]:
 
 
 N1 = ":DM1@DUM"
@@ -454,7 +473,7 @@ ASP88_3 = f":{88-42}@C"  # Asp88 C
 ASP88_4 = f":{89-42}@N"  # Ala89 N
 
 
-# In[12]:
+# In[ ]:
 
 
 for mask in [
@@ -480,7 +499,7 @@ for mask in [
         print(mask)
 
 
-# In[13]:
+# In[ ]:
 
 
 deltaG_values = {}
@@ -488,7 +507,7 @@ deltaG_values = {}
 
 # ## Calculate $\Delta G_{attach,p}$
 
-# In[14]:
+# In[ ]:
 
 
 from paprika import restraints
@@ -610,80 +629,80 @@ restraints.restraints.check_restraints(attach_p_restraints_dynamic)
 window_list = restraints.utils.create_window_list(attach_p_restraints_dynamic)
 
 
-# In[15]:
+# In[ ]:
 
 
-#  from simulate import run_heating_and_equil, run_minimization, run_production
+from simulate import run_heating_and_equil, run_minimization, run_production
 
-#  simulation_parameters = {
-#      "k_pos": 50 * kilocalorie / (mole * angstrom**2),
-#      "friction": 1 / picosecond,
-#      "timestep": 1 * femtoseconds,
-#      "tolerance": 0.0001 * kilojoules_per_mole / nanometer,
-#      "maxIterations": 0,
-#  }
+simulation_parameters = {
+    "k_pos": 50 * kilocalorie / (mole * angstrom**2),
+    "friction": 1 / picosecond,
+    "timestep": 1 * femtoseconds,
+    "tolerance": 0.0001 * kilojoules_per_mole / nanometer,
+    "maxIterations": 0,
+}
 
-# futures = [
-#    run_minimization.remote(
-#        window,
-#        system,
-#        model,
-#        attach_p_restraints_static + attach_p_restraints_dynamic,
-#        "attach_p_restraints",
-#        simulation_parameters=simulation_parameters,
-#        data_dir_names=data_dir_names,
-#    )
-#    for window in window_list
-# ]
-# _ = ray.get(futures)
-
-
-#  simulation_parameters = {
-#      "temperatures": np.arange(0.0, 298.15, 10.0),
-#      "time_per_temp": 20 * picoseconds,
-#      "equilibration_time": 15 * nanoseconds,
-#      "friction": 1 / picosecond,
-#      "timestep": 1 * femtoseconds,
-#  }
-
-#  futures = [
-#     run_heating_and_equil.remote(
-#         window,
-#         system,
-#         model,
-#         "attach_p_restraints",
-#         simulation_parameters=simulation_parameters,
-#         data_dir_names=data_dir_names,
-#     )
-#     for window in window_list
-#  ]
-#  _ = ray.get(futures)
+futures = [
+  run_minimization.remote(
+      window,
+      system,
+      model,
+      attach_p_restraints_static + attach_p_restraints_dynamic,
+      "attach_p_restraints",
+      simulation_parameters=simulation_parameters,
+      data_dir_names=data_dir_names,
+  )
+  for window in window_list
+]
+_ = ray.get(futures)
 
 
-# simulation_parameters = {
-#     "temperature": 298.15,
-#     "friction": 1 / picosecond,
-#     "timestep": 2 * femtoseconds,
-#     "production_time": 25 * nanoseconds,
-#     "dcd_reporter_frequency": 1000,
-#     "state_reporter_frequency": 1000,
-# }
+simulation_parameters = {
+    "temperatures": np.arange(0.0, 298.15, 10.0),
+    "time_per_temp": 20 * picoseconds,
+    "equilibration_time": 15 * nanoseconds,
+    "friction": 1 / picosecond,
+    "timestep": 1 * femtoseconds,
+}
 
-# futures = [
-#    run_production.remote(
-#        window,
-#        system,
-#        model,
-#        "attach_p_restraints",
-#        simulation_parameters=simulation_parameters,
-#        data_dir_names=data_dir_names,
-#    )
-#    for window in window_list
-# ]
-# _ = ray.get(futures)
+futures = [
+   run_heating_and_equil.remote(
+       window,
+       system,
+       model,
+       "attach_p_restraints",
+       simulation_parameters=simulation_parameters,
+       data_dir_names=data_dir_names,
+   )
+   for window in window_list
+]
+_ = ray.get(futures)
 
 
-# In[16]:
+simulation_parameters = {
+   "temperature": 298.15,
+   "friction": 1 / picosecond,
+   "timestep": 2 * femtoseconds,
+   "production_time": 25 * nanoseconds,
+   "dcd_reporter_frequency": 1000,
+   "state_reporter_frequency": 1000,
+}
+
+futures = [
+  run_production.remote(
+      window,
+      system,
+      model,
+      "attach_p_restraints",
+      simulation_parameters=simulation_parameters,
+      data_dir_names=data_dir_names,
+  )
+  for window in window_list
+]
+_ = ray.get(futures)
+
+
+# In[ ]:
 
 
 import paprika.analysis as analysis
@@ -711,7 +730,7 @@ print("deltaG_attach_p", deltaG_attach_p)
 
 # ## Calculate $\Delta G_{attach,l}$
 
-# In[15]:
+# In[ ]:
 
 
 from paprika import restraints
@@ -1069,7 +1088,7 @@ restraints.restraints.check_restraints(attach_l_restraints_dynamic)
 window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
 
 
-# In[16]:
+# In[ ]:
 
 
 # import matplotlib.pyplot as plt
@@ -1093,80 +1112,80 @@ window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
 # fig.show()
 
 
-# In[50]:
+# In[ ]:
 
 
-# from simulate import run_heating_and_equil, run_minimization, run_production
+from simulate import run_heating_and_equil, run_minimization, run_production
 
-# simulation_parameters = {
-#     "k_pos": 50 * kilocalorie / (mole * angstrom**2),
-#     "friction": 1 / picosecond,
-#     "timestep": 1 * femtoseconds,
-#     "tolerance": 0.5 * kilojoules_per_mole / nanometer,
-#     "maxIterations": 0,
-# }
+simulation_parameters = {
+    "k_pos": 50 * kilocalorie / (mole * angstrom**2),
+    "friction": 1 / picosecond,
+    "timestep": 1 * femtoseconds,
+    "tolerance": 0.5 * kilojoules_per_mole / nanometer,
+    "maxIterations": 0,
+}
 
-# futures = [
-#    run_minimization.remote(
-#        window,
-#        system,
-#        model,
-#        attach_l_restraints_static + attach_l_restraints_dynamic,
-#        "attach_l_restraints",
-#        simulation_parameters=simulation_parameters,
-#        data_dir_names=data_dir_names,
-#    )
-#    for window in window_list
-# ]
-# _ = ray.get(futures)
-
-
-# simulation_parameters = {
-#     "temperatures": np.arange(0.0, 298.15, 10.0),
-#     "time_per_temp": 20 * picoseconds,
-#     "equilibration_time": 15 * nanoseconds,
-#     "friction": 1 / picosecond,
-#     "timestep": 1 * femtoseconds,
-# }
-
-# futures = [
-#    run_heating_and_equil.remote(
-#        window,
-#        system,
-#        model,
-#        "attach_l_restraints",
-#        simulation_parameters=simulation_parameters,
-#        data_dir_names=data_dir_names,
-#    )
-#    for window in window_list
-# ]
-# _ = ray.get(futures)
+futures = [
+   run_minimization.remote(
+       window,
+       system,
+       model,
+       attach_l_restraints_static + attach_l_restraints_dynamic,
+       "attach_l_restraints",
+       simulation_parameters=simulation_parameters,
+       data_dir_names=data_dir_names,
+   )
+   for window in window_list
+]
+_ = ray.get(futures)
 
 
-# simulation_parameters = {
-#     "temperature": 298.15,
-#     "friction": 1 / picosecond,
-#     "timestep": 2 * femtoseconds,
-#     "production_time": 25 * nanoseconds,
-#     "dcd_reporter_frequency": 1000,
-#     "state_reporter_frequency": 1000,
-# }
+simulation_parameters = {
+    "temperatures": np.arange(0.0, 298.15, 10.0),
+    "time_per_temp": 20 * picoseconds,
+    "equilibration_time": 15 * nanoseconds,
+    "friction": 1 / picosecond,
+    "timestep": 1 * femtoseconds,
+}
 
-# futures = [
-#    run_production.remote(
-#        window,
-#        system,
-#        model,
-#        "attach_l_restraints",
-#        simulation_parameters=simulation_parameters,
-#        data_dir_names=data_dir_names,
-#    )
-#    for window in window_list
-# ]
-# _ = ray.get(futures)
+futures = [
+   run_heating_and_equil.remote(
+       window,
+       system,
+       model,
+       "attach_l_restraints",
+       simulation_parameters=simulation_parameters,
+       data_dir_names=data_dir_names,
+   )
+   for window in window_list
+]
+_ = ray.get(futures)
 
 
-# In[19]:
+simulation_parameters = {
+    "temperature": 298.15,
+    "friction": 1 / picosecond,
+    "timestep": 2 * femtoseconds,
+    "production_time": 25 * nanoseconds,
+    "dcd_reporter_frequency": 1000,
+    "state_reporter_frequency": 1000,
+}
+
+futures = [
+   run_production.remote(
+       window,
+       system,
+       model,
+       "attach_l_restraints",
+       simulation_parameters=simulation_parameters,
+       data_dir_names=data_dir_names,
+   )
+   for window in window_list
+]
+_ = ray.get(futures)
+
+
+# In[ ]:
 
 
 import paprika.analysis as analysis
@@ -1191,7 +1210,7 @@ deltaG_values["deltaG_attach_l"] = deltaG_attach_l
 print("deltaG_attach_l", deltaG_attach_l)
 
 
-# In[17]:
+# In[ ]:
 
 
 # import importlib
@@ -1410,74 +1429,74 @@ window_list = restraints.utils.create_window_list(pull_restraints_dynamic)
 # In[ ]:
 
 
-# from simulate import run_heating_and_equil, run_minimization, run_production
+from simulate import run_heating_and_equil, run_minimization, run_production
 
-# simulation_parameters = {
-#    "k_pos": 50 * kilocalorie / (mole * angstrom**2),
-#    "friction": 1 / picosecond,
-#    "timestep": 1 * femtoseconds,
-#    "tolerance": 0.001 * kilojoules_per_mole / nanometer,
-#    "maxIterations": 0,
-# }
+simulation_parameters = {
+   "k_pos": 50 * kilocalorie / (mole * angstrom**2),
+   "friction": 1 / picosecond,
+   "timestep": 1 * femtoseconds,
+   "tolerance": 0.001 * kilojoules_per_mole / nanometer,
+   "maxIterations": 0,
+}
 
-# futures = [
-#    run_minimization.remote(
-#        window,
-#        system,
-#        model,
-#        pull_restraints_static + pull_restraints_dynamic,
-#        "pull_restraints",
-#        simulation_parameters=simulation_parameters,
-#        data_dir_names=data_dir_names,
-#    )
-#    for window in window_list
-# ]
-# _ = ray.get(futures)
-
-
-# simulation_parameters = {
-#    "temperatures": np.arange(0.0, 298.15, 10.0),
-#    "time_per_temp": 20 * picoseconds,
-#    "equilibration_time": 40 * nanoseconds,
-#    "friction": 1 / picosecond,
-#    "timestep": 1 * femtoseconds,
-# }
-
-# futures = [
-#    run_heating_and_equil.remote(
-#        window,
-#        system,
-#        model,
-#        "pull_restraints",
-#        simulation_parameters=simulation_parameters,
-#        data_dir_names=data_dir_names,
-#    )
-#    for window in window_list
-# ]
-# _ = ray.get(futures)
+futures = [
+   run_minimization.remote(
+       window,
+       system,
+       model,
+       pull_restraints_static + pull_restraints_dynamic,
+       "pull_restraints",
+       simulation_parameters=simulation_parameters,
+       data_dir_names=data_dir_names,
+   )
+   for window in window_list
+]
+_ = ray.get(futures)
 
 
-# simulation_parameters = {
-#    "temperature": 298.15,
-#    "friction": 1 / picosecond,
-#    "timestep": 2 * femtoseconds,
-#    "production_time": 100 * nanoseconds,
-#    "dcd_reporter_frequency": 1000,
-#    "state_reporter_frequency": 1000,
-# }
+simulation_parameters = {
+   "temperatures": np.arange(0.0, 298.15, 10.0),
+   "time_per_temp": 20 * picoseconds,
+   "equilibration_time": 40 * nanoseconds,
+   "friction": 1 / picosecond,
+   "timestep": 1 * femtoseconds,
+}
 
-# futures = [
-#    run_production.remote(
-#        window,
-#        system,
-#        model,
-#        "pull_restraints",
-#        simulation_parameters=simulation_parameters,
-#        data_dir_names=data_dir_names,
-#    )
-#    for window in window_list
-# ]
-# _ = ray.get(futures)
+futures = [
+   run_heating_and_equil.remote(
+       window,
+       system,
+       model,
+       "pull_restraints",
+       simulation_parameters=simulation_parameters,
+       data_dir_names=data_dir_names,
+   )
+   for window in window_list
+]
+_ = ray.get(futures)
+
+
+simulation_parameters = {
+   "temperature": 298.15,
+   "friction": 1 / picosecond,
+   "timestep": 2 * femtoseconds,
+   "production_time": 100 * nanoseconds,
+   "dcd_reporter_frequency": 1000,
+   "state_reporter_frequency": 1000,
+}
+
+futures = [
+   run_production.remote(
+       window,
+       system,
+       model,
+       "pull_restraints",
+       simulation_parameters=simulation_parameters,
+       data_dir_names=data_dir_names,
+   )
+   for window in window_list
+]
+_ = ray.get(futures)
 
 
 # In[ ]:
@@ -1549,43 +1568,7 @@ model = Modeller(model.topology, structure.positions.in_units_of(nanometer))
 # In[ ]:
 
 
-gb_force = openmm.CustomGBForce()
-
-gb_force.addPerParticleParameter("q")
-gb_force.addPerParticleParameter("radius")
-gb_force.addPerParticleParameter("scale")
-gb_force.addPerParticleParameter("isntDummy")
-gb_force.addGlobalParameter("solventDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solvent_dielectric"]))
-gb_force.addGlobalParameter("soluteDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solute_dielectric"]))
-gb_force.addComputedValue("I", "select(step(r+sr2-or1), 0.5*(1/L-1/U+0.25*(r-sr2^2/r)*(1/(U^2)-1/(L^2))+0.5*log(L/U)/r), 0);"
-                              "U=r+sr2;"
-                              "C=2*(1/or1-1/L)*step(sr2-r-or1);"
-                              "L=max(or1, D);"
-                              "D=abs(r-sr2);"
-                              "sr2 = scale2*or2;"
-                              "or1 = radius1-0.009; or2 = radius2-0.009", CustomGBForce.ParticlePairNoExclusions)
-gb_force.addComputedValue("B", f"1/(1/or-tanh({float(ff_dict['SMIRNOFF']['CustomGBSA']['@alpha'])}*psi-{float(ff_dict['SMIRNOFF']['CustomGBSA']['@beta'])}*psi^2+{float(ff_dict['SMIRNOFF']['CustomGBSA']['@gamma'])}*psi^3)/radius);"
-                              "psi=I*or; or=radius-0.009", CustomGBForce.SingleParticle)
-gb_force.addEnergyTerm("isntDummy*28.3919551*(radius+0.14)^2*(radius/B)^6-0.5*138.935456*(1/soluteDielectric-1/solventDielectric)*q^2/B",
-                      CustomGBForce.SingleParticle)
-gb_force.addEnergyTerm("-138.935456*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;"
-                      "f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)))", CustomGBForce.ParticlePair);
-
-matches = []
-for smirks_dict in ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"]:
-    matches.append([match[0]for match in ligand_mol.chemical_environment_matches(smirks_dict["@smirks"])])
-
-for i, atom in enumerate(openff_topology.atoms):
-    for j, match_list in enumerate(matches):
-        if i in match_list:
-            specific_atom_data = ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"][j]
-    q = atom.partial_charge.m_as(openff_unit.elementary_charge)
-    radius = float(specific_atom_data["@radius"].split("*")[0])
-    scale = float(specific_atom_data["@scale"])
-    isnt_dummy = 1
-    gb_force.addParticle((q, radius, scale, isnt_dummy))
-
-system.addForce(gb_force);
+add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
 
 
 # In[ ]:
@@ -2044,43 +2027,7 @@ model = Modeller(model.topology, structure.positions.in_units_of(nanometer))
 # In[ ]:
 
 
-gb_force = openmm.CustomGBForce()
-
-gb_force.addPerParticleParameter("q")
-gb_force.addPerParticleParameter("radius")
-gb_force.addPerParticleParameter("scale")
-gb_force.addPerParticleParameter("isntDummy")
-gb_force.addGlobalParameter("solventDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solvent_dielectric"]))
-gb_force.addGlobalParameter("soluteDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solute_dielectric"]))
-gb_force.addComputedValue("I", "select(step(r+sr2-or1), 0.5*(1/L-1/U+0.25*(r-sr2^2/r)*(1/(U^2)-1/(L^2))+0.5*log(L/U)/r), 0);"
-                              "U=r+sr2;"
-                              "C=2*(1/or1-1/L)*step(sr2-r-or1);"
-                              "L=max(or1, D);"
-                              "D=abs(r-sr2);"
-                              "sr2 = scale2*or2;"
-                              "or1 = radius1-0.009; or2 = radius2-0.009", CustomGBForce.ParticlePairNoExclusions)
-gb_force.addComputedValue("B", f"1/(1/or-tanh({float(ff_dict['SMIRNOFF']['CustomGBSA']['@alpha'])}*psi-{float(ff_dict['SMIRNOFF']['CustomGBSA']['@beta'])}*psi^2+{float(ff_dict['SMIRNOFF']['CustomGBSA']['@gamma'])}*psi^3)/radius);"
-                              "psi=I*or; or=radius-0.009", CustomGBForce.SingleParticle)
-gb_force.addEnergyTerm("isntDummy*28.3919551*(radius+0.14)^2*(radius/B)^6-0.5*138.935456*(1/soluteDielectric-1/solventDielectric)*q^2/B",
-                      CustomGBForce.SingleParticle)
-gb_force.addEnergyTerm("-138.935456*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;"
-                      "f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)))", CustomGBForce.ParticlePair);
-
-matches = []
-for smirks_dict in ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"]:
-    matches.append([match[0] for match in protein_mol.chemical_environment_matches(smirks_dict["@smirks"])])
-
-for i, atom in enumerate(openff_topology.atoms):
-    for j, match_list in enumerate(matches):
-        if i in match_list:
-            specific_atom_data = ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"][j]
-    q = atom.partial_charge.m_as(openff_unit.elementary_charge)
-    radius = float(specific_atom_data["@radius"].split("*")[0])
-    scale = float(specific_atom_data["@scale"])
-    isnt_dummy = 1
-    gb_force.addParticle((q, radius, scale, isnt_dummy))
-
-system.addForce(gb_force);
+add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
 
 
 # In[ ]:
@@ -2413,10 +2360,4 @@ for key in deltaG_values.keys():
 
 with open(f"{results_dirname}/results.pickle", "wb") as f:
    pickle.dump(deltaG_values, f)
-
-
-# In[ ]:
-
-
-
 
