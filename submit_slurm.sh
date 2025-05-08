@@ -1,11 +1,11 @@
 #!/bin/bash
 
-#SBATCH --job-name="PL-ABFE-BRD4-2"
-#SBATCH --partition=rtx3090
+#SBATCH --job-name="PL-ABFE-BRD4"
+#SBATCH --partition=168h
 #SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem-per-cpu=2GB
-#SBATCH --time=4-00:00:00
+#SBATCH --mem-per-cpu=1GB
+#SBATCH --time=5-00:00:00
 #SBATCH -q hca-csd765
 #SBATCH --gpus-per-task=8
 #SBATCH --nodes=5
@@ -15,16 +15,15 @@ Folder=$(pwd)
 source ~/.bashrc
 cd ${Folder}/
 
-conda activate openff-evaluator-7
-conda list | grep cuda
-conda list | grep openmm
+conda init
+conda activate openff-evaluator-6
 
-export LD_LIBRARY_PATH="$HOME/miniconda3/envs/openff-evaluator-7/lib:${LD_LIBRARY_PATH}"
-export OPENMM_PLUGIN_DIR="$HOME/miniconda3/envs/openff-evaluator-7/lib/plugins"
+export LD_LIBRARY_PATH="$HOME/miniconda3/envs/openff-evaluator-6/lib:${LD_LIBRARY_PATH}"
+export OPENMM_PLUGIN_DIR="$HOME/miniconda3/envs/openff-evaluator-6/lib/plugins"
 export OE_LICENSE="$HOME/oe_license.txt"
 export JAX_ENABLE_X64=True
 
-cd /tscc/nfs/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4
+cd /home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4
 
 echo "Starting job at $(date)"
 
@@ -64,8 +63,6 @@ for ((i = 1; i <= worker_num; i++)); do
     node_i=${nodes_array[$i]}
     echo "Starting WORKER $i at $node_i"
     srun --nodes=1 --ntasks=1 -w "$node_i" \
-	nvidia-smi; \
-	python -m openmm.testInstallation; \
         ray start --address "$ip_head" \
         --num-cpus "${SLURM_CPUS_PER_TASK}" --num-gpus "${SLURM_GPUS_PER_TASK}" --block &
     sleep 5

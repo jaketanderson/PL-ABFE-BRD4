@@ -1,5 +1,5 @@
 data_cell
-# Created with OpenMM 8.1.2, 2025-04-13
+# Created with OpenMM 8.1.2, 2025-05-06
 #
 loop_
 _atom_site.group_PDB

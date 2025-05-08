@@ -163,8 +163,8 @@ def run_heating_and_equil(
     defaults.update(simulation_parameters)
 
     temperatures = defaults["temperatures"]
-    time_per_temp = defaults["time_per_temp"] / 10
-    equilibration_time = defaults["equilibration_time"] / 10
+    time_per_temp = defaults["time_per_temp"]
+    equilibration_time = defaults["equilibration_time"]
     friction = defaults["friction"]
     timestep = defaults["timestep"]
 

@@ -31859,15 +31859,21 @@
 			<GlobalParameters>
 				<Parameter default="78.5" name="solventDielectric"/>
 				<Parameter default="1" name="soluteDielectric"/>
+				<Parameter default="5.4" name="surface_area_penalty"/>
+				<Parameter default=".14" name="solvent_radius"/>
+				<Parameter default="0" name="kappa"/>
+				<Parameter default="3.141592653589793" name="PI"/>
+				<Parameter default="138.935485" name="ONE_4PI_EPS0"/>
 			</GlobalParameters>
 			<EnergyParameterDerivatives/>
 			<ComputedValues>
 				<Value expression="select(step(r+sr2-or1), 0.5*(1/L-1/U+0.25*(r-sr2^2/r)*(1/(U^2)-1/(L^2))+0.5*log(L/U)/r), 0);U=r+sr2;C=2*(1/or1-1/L)*step(sr2-r-or1);L=max(or1, D);D=abs(r-sr2);sr2 = scale2*or2;or1 = radius1-0.009; or2 = radius2-0.009" name="I" type="2"/>
-				<Value expression="1/(1/or-tanh(1.0*psi-0.8*psi^2+4.85*psi^3)/radius);psi=I*or; or=radius-0.009" name="B" type="0"/>
+				<Value expression="logistic_curve; logistic_curve=(A+(K-A)/((1+nu*exp(b*(inflec-(psi))))^(1/nu))); A=radius; K=((or)^(-1) - (radius)^(-1))^(-1); nu=2.86122; b=21.08671; inflec=1.8; psi=I*or; or=radius-0.009;" name="B" type="0"/>
 			</ComputedValues>
 			<EnergyTerms>
-				<Term expression="isntDummy*28.3919551*(radius+0.14)^2*(radius/B)^6-0.5*138.935456*(1/soluteDielectric-1/solventDielectric)*q^2/B" type="0"/>
-				<Term expression="-138.935456*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)))" type="1"/>
+				<Term expression="-0.5*ONE_4PI_EPS0*(1/soluteDielectric-1/solventDielectric)*q^2/B" type="0"/>
+				<Term expression="4*PI*surface_area_penalty*(radius+solvent_radius)^2*(radius/B)^6;" type="0"/>
+				<Term expression="-ONE_4PI_EPS0*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)))" type="2"/>
 			</EnergyTerms>
 			<Particles>
 				<Particle param1=".1592" param2=".155" param3=".79" param4="1"/>

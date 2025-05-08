@@ -49,8 +49,9 @@ logger.addHandler(stream_handler)
 force_fields = "force_fields"
 initial_data = "initial_data"
 prepared_data = "prepared_data"
+# working_data = "/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/results_4-13-25_OBC2/data/ucsd/gilsonlab/jta002/working_data"
+# working_data = "/tscc/lustre/ddn/scratch/jta002/working-data"
 working_data = "/data/ucsd/gilsonlab/jta002/working_data"
-# working_data = "/tscc/lustre/ddn/scratch/jta002/working-data2"
 # working_data = "working_data"
 results_dirname = "results"
 
@@ -78,6 +79,12 @@ def add_CustomGB_force(xml_filename: str, system: openmm.System):
     gb_force.addPerParticleParameter("isntDummy")
     gb_force.addGlobalParameter("solventDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solvent_dielectric"]))
     gb_force.addGlobalParameter("soluteDielectric", float(ff_dict["SMIRNOFF"]["CustomGBSA"]["@solute_dielectric"]))
+    gb_force.addGlobalParameter("surface_area_penalty", 5.4)
+    gb_force.addGlobalParameter("solvent_radius", 0.14)
+    gb_force.addGlobalParameter("kappa", 0.0)
+    gb_force.addGlobalParameter("PI", float(np.pi))
+    gb_force.addGlobalParameter("ONE_4PI_EPS0", 138.935485)
+    
     gb_force.addComputedValue("I", "select(step(r+sr2-or1), 0.5*(1/L-1/U+0.25*(r-sr2^2/r)*(1/(U^2)-1/(L^2))+0.5*log(L/U)/r), 0);"
                                   "U=r+sr2;"
                                   "C=2*(1/or1-1/L)*step(sr2-r-or1);"
@@ -91,18 +98,15 @@ def add_CustomGB_force(xml_filename: str, system: openmm.System):
                                       "psi=I*or; or=radius-0.009", CustomGBForce.SingleParticle)
 
     elif ff_dict["SMIRNOFF"]["CustomGBSA"]["@gb_model"] == "OBC_Logistic":
-        effective_radii = [
-                "logistic_curve;",
-                f"logistic_curve=(A+(K-A)/((1+nu*exp(b*(inflec-(psi))))^(1/nu)));",
-                f"A=radius; K=((or)^(-1) - (radius)^(-1))^(-1); nu={float(ff_dict['SMIRNOFF']['CustomGBSA']['@nu'])}; b={float(ff_dict['SMIRNOFF']['CustomGBSA']['@b'])}; inflec={float(ff_dict['SMIRNOFF']['CustomGBSA']['@inflec'])};",
-                f"psi=I*or; radius-0.009;",
-        ]
-        gb_force.addComputedValue("B", "".join(effective_radii), CustomGBForce.SingleParticle)
-    
-    gb_force.addEnergyTerm("isntDummy*28.3919551*(radius+0.14)^2*(radius/B)^6-0.5*138.935456*(1/soluteDielectric-1/solventDielectric)*q^2/B",
-                          CustomGBForce.SingleParticle)
-    gb_force.addEnergyTerm("-138.935456*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;"
-                          "f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)))", CustomGBForce.ParticlePair);
+        gb_force.addComputedValue("B", "logistic_curve; "
+                                  f"logistic_curve=(A+(K-A)/((1+nu*exp(b*(inflec-(psi))))^(1/nu))); "
+                                  f"A=radius; K=((or)^(-1) - (radius)^(-1))^(-1); nu={float(ff_dict['SMIRNOFF']['CustomGBSA']['@nu'])}; b={float(ff_dict['SMIRNOFF']['CustomGBSA']['@b'])}; inflec={float(ff_dict['SMIRNOFF']['CustomGBSA']['@inflec'])}; "
+                                  f"psi=I*or; or=radius-0.009;", CustomGBForce.SingleParticle)
+
+    gb_force.addEnergyTerm("-0.5*ONE_4PI_EPS0*(1/soluteDielectric-1/solventDielectric)*q^2/B", CustomGBForce.SingleParticle)
+    gb_force.addEnergyTerm("4*PI*surface_area_penalty*(radius+solvent_radius)^2*(radius/B)^6;", openmm.CustomGBForce.SingleParticle)
+    gb_force.addEnergyTerm("-ONE_4PI_EPS0*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;"
+                          "f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)))", CustomGBForce.ParticlePairNoExclusions);
     
     matches = []
     for smirks_dict in ff_dict["SMIRNOFF"]["CustomGBSA"]["Atom"]:
@@ -282,7 +286,7 @@ if implicit_solvent:
     force_field = openffForceField(
         "openff-2.2.0.offxml",
         "ff14sb_off_impropers_0.0.4.offxml",  # Consider removing openff impropers
-        f"{force_fields}/GBSA-OBC2.offxml",
+        # f"{force_fields}/GBSA-OBC2.offxml",
         load_plugins=True,
         allow_cosmetic_attributes=True,
     )
@@ -297,6 +301,9 @@ if implicit_solvent:
         charge_from_molecules=[protein_mol, ligand_mol],
         allow_nonintegral_charges=True,
     )
+
+    # add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
+    add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
     
     openmm_positions = Quantity(
         value=[
@@ -326,12 +333,6 @@ else:
         "amber/tip3p_HFE_multivalent.xml",
     )
     forcefield.registerTemplateGenerator(gaff.generator)
-
-
-# In[ ]:
-
-
-add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
 
 
 # In[ ]:
@@ -824,7 +825,7 @@ Asp88_torsion_wall_static = restraints.static_DAT_restraint(
     continuous_apr=False,
 )
 Asp88_torsion_wall_static.custom_restraint_values = {
-    "r2": 55.0 * openff_unit.degree,
+    "r2": 65.0 * openff_unit.degree,
     "r3": 179.9,
     "rk2": 20.0 * openff_unit.kilocalorie / (openff_unit.mole * openff_unit.radian**2),
     "rk3": 0.0,
@@ -859,9 +860,10 @@ L1_L2_vector = (
     aligned_dummy_structure[L2].positions[0] - aligned_dummy_structure[L1].positions[0]
 )
 L1_L2_vector = [val.value_in_unit(angstrom) for val in L1_L2_vector]
-L1_L2_distance.attach["target"] = openff_unit.Quantity(
-    value=np.linalg.norm(L1_L2_vector), units=openff_unit.angstrom
-)
+# L1_L2_distance.attach["target"] = openff_unit.Quantity(
+#     value=np.linalg.norm(L1_L2_vector), units=openff_unit.angstrom
+# )
+L1_L2_distance.attach["target"] = 5.8 * openff_unit.angstrom
 L1_L2_distance.attach["fraction_list"] = attach_l_fractions * 100
 L1_L2_distance.attach["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
 L1_L2_distance.attach["fc_initial"] = 0
@@ -880,9 +882,10 @@ L2_L3_vector = (
     aligned_dummy_structure[L3].positions[0] - aligned_dummy_structure[L2].positions[0]
 )
 L2_L3_vector = [val.value_in_unit(angstrom) for val in L2_L3_vector]
-L2_L3_distance.attach["target"] = openff_unit.Quantity(
-    value=np.linalg.norm(L2_L3_vector), units=openff_unit.angstrom
-)
+# L2_L3_distance.attach["target"] = openff_unit.Quantity(
+#     value=np.linalg.norm(L2_L3_vector), units=openff_unit.angstrom
+# )
+L2_L3_distance.attach["target"] = 5.2 * openff_unit.angstrom
 L2_L3_distance.attach["fraction_list"] = attach_l_fractions * 100
 L2_L3_distance.attach["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
 L2_L3_distance.attach["fc_initial"] = 0
@@ -901,9 +904,10 @@ L1_L3_vector = (
     aligned_dummy_structure[L3].positions[0] - aligned_dummy_structure[L1].positions[0]
 )
 L1_L3_vector = [val.value_in_unit(angstrom) for val in L1_L3_vector]
-L1_L3_distance.attach["target"] = openff_unit.Quantity(
-    value=np.linalg.norm(L1_L3_vector), units=openff_unit.angstrom
-)
+# L1_L3_distance.attach["target"] = openff_unit.Quantity(
+#     value=np.linalg.norm(L1_L3_vector), units=openff_unit.angstrom
+# )
+L1_L3_distance.attach["target"] = 7.9 * openff_unit.angstrom
 L1_L3_distance.attach["fraction_list"] = attach_l_fractions * 100
 L1_L3_distance.attach["fc_final"] = 5/2  # kilocalorie/(mole*angstrom**2)
 L1_L3_distance.attach["fc_initial"] = 0
@@ -955,9 +959,9 @@ N1_L1_vector = np.array(
 #         / (np.linalg.norm(N1_N2_vector) * np.linalg.norm(N1_L1_vector))
 #     )
 # )  # Degrees
-N2_N1_L1_angle.attach["target"] = 65  # Degrees
+N2_N1_L1_angle.attach["target"] = 90  # Degrees
 N2_N1_L1_angle.attach["fraction_list"] = attach_l_fractions * 100
-N2_N1_L1_angle.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
+N2_N1_L1_angle.attach["fc_final"] = (100/10)/2  # kilocalorie/(mole*radian**2)
 N2_N1_L1_angle.initialize()
 attach_l_restraints_dynamic.append(N2_N1_L1_angle)
 
@@ -982,7 +986,7 @@ L1_L2_vector = np.array(
 #         / (np.linalg.norm(L1_N1_vector) * np.linalg.norm(L1_L2_vector))
 #     )
 # )  # Degrees
-N1_L1_L2_angle.attach["target"] = 110  # Degrees
+N1_L1_L2_angle.attach["target"] = 120  # Degrees
 N1_L1_L2_angle.attach["fraction_list"] = attach_l_fractions * 100
 N1_L1_L2_angle.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
 N1_L1_L2_angle.initialize()
@@ -1013,7 +1017,7 @@ norm1, norm2 = np.cross(N3_N2_vector, N2_N1_vector), np.cross(
 # N3_N2_N1_L1_torsion.attach["target"] = np.degrees(
 #     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
 # )
-N3_N2_N1_L1_torsion.attach["target"] = -55  # Degrees
+N3_N2_N1_L1_torsion.attach["target"] = -10  # Degrees
 N3_N2_N1_L1_torsion.attach["fraction_list"] = attach_l_fractions * 100
 N3_N2_N1_L1_torsion.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
 N3_N2_N1_L1_torsion.initialize()
@@ -1044,9 +1048,9 @@ norm1, norm2 = np.cross(N2_N1_vector, N1_L1_vector), np.cross(
 # N2_N1_L1_L2_torsion.attach["target"] = np.degrees(
 #     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
 # )
-N2_N1_L1_L2_torsion.attach["target"] = 120  # Degrees
+N2_N1_L1_L2_torsion.attach["target"] = -40  # Degrees
 N2_N1_L1_L2_torsion.attach["fraction_list"] = attach_l_fractions * 100
-N2_N1_L1_L2_torsion.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
+N2_N1_L1_L2_torsion.attach["fc_final"] = (100/10)/4  # kilocalorie/(mole*radian**2)
 N2_N1_L1_L2_torsion.initialize()
 attach_l_restraints_dynamic.append(N2_N1_L1_L2_torsion)
 
@@ -1075,9 +1079,9 @@ norm1, norm2 = np.cross(N1_L1_vector, L1_L2_vector), np.cross(
 # N1_L1_L2_L3_torsion.attach["target"] = np.degrees(
 #     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
 # )
-N1_L1_L2_L3_torsion.attach["target"] = 10  # Degrees
+N1_L1_L2_L3_torsion.attach["target"] = -160  # Degrees
 N1_L1_L2_L3_torsion.attach["fraction_list"] = attach_l_fractions * 100
-N1_L1_L2_L3_torsion.attach["fc_final"] = 100/10
+N1_L1_L2_L3_torsion.attach["fc_final"] = (100/5)/4
 N1_L1_L2_L3_torsion.initialize()
 attach_l_restraints_dynamic.append(N1_L1_L2_L3_torsion)
 
@@ -1091,25 +1095,37 @@ window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
 # In[ ]:
 
 
-# import matplotlib.pyplot as plt
-# from paprika import utils
-# from tqdm import tqdm
 # import mdtraj as md
+# from paprika import utils
 
-# i1 = utils.index_from_mask(aligned_dummy_structure, L2)
-# i2 = utils.index_from_mask(aligned_dummy_structure, L3)
+# rests = attach_l_restraints_static + attach_l_restraints_dynamic
+# restraint = rests[3]
+# phase_name = "attach_l_restraints"
+# window = "a000"
 
-# fig = plt.figure()
-# for window in tqdm(window_list[:2]):
-#     traj = md.load(f"{working_data}/attach_l_restraints/{window}/production.dcd", top=f"{working_data}/attach_l_restraints/{window}/heated.pdb")
-#     atom_indices = traj.topology.select(f"index {i1[0]}"), traj.topology.select(f"index {i2[0]}")
-#     pairs = [ (atom_indices[0][0], atom_indices[1][0]) ]
-#     distances = md.compute_distances(traj, pairs)
-#     distances = (distances*10).flatten()
-#     bins = np.arange(min(distances), max(distances), 0.025)
-#     plt.hist(distances, bins=bins, alpha=0.5)
+# top = f"{working_data}/{phase_name}/{window}/minimized.pdb"
+# traj = md.load(f"{working_data}/{phase_name}/{window}/heating.dcd", top=top) + md.load(f"{working_data}/{phase_name}/{window}/production.dcd", top=top)
 
-# fig.show()
+# mask_list = [a for a in [restraint.mask1, restraint.mask2, restraint.mask3, restraint.mask4] if a is not None]
+# print(mask_list)
+
+# # index_list = [utils.index_from_mask(structure, mask)[0] for mask in mask_list]
+# # print(index_list)
+
+# for mask in mask_list:
+#     index = utils.index_from_mask(aligned_dummy_structure, mask)
+#     print(index)
+
+
+
+
+# In[ ]:
+
+
+# from analyze import generate_histograms
+
+# _ = generate_histograms(attach_l_restraints_static + attach_l_restraints_dynamic, "attach_l_restraints", [window_list[i] for i in [0, 1, -2, -1]], aligned_dummy_structure, data_dir_names)
+
 
 
 # In[ ]:
@@ -1457,7 +1473,7 @@ _ = ray.get(futures)
 simulation_parameters = {
    "temperatures": np.arange(0.0, 298.15, 10.0),
    "time_per_temp": 20 * picoseconds,
-   "equilibration_time": 40 * nanoseconds,
+   "equilibration_time": 15 * nanoseconds,
    "friction": 1 / picosecond,
    "timestep": 1 * femtoseconds,
 }
@@ -1480,7 +1496,7 @@ simulation_parameters = {
    "temperature": 298.15,
    "friction": 1 / picosecond,
    "timestep": 2 * femtoseconds,
-   "production_time": 100 * nanoseconds,
+   "production_time": 25 * nanoseconds,
    "dcd_reporter_frequency": 1000,
    "state_reporter_frequency": 1000,
 }
@@ -1542,6 +1558,9 @@ system = force_field.create_openmm_system(
     allow_nonintegral_charges=True,
 )
 
+# add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
+add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
+
 openmm_positions = Quantity(
     value=[
         Vec3(
@@ -1563,12 +1582,6 @@ with open(f"{prepared_data}/aligned_structure.pickle", "rb") as f:
 structure.strip("!:2SJ")
 
 model = Modeller(model.topology, structure.positions.in_units_of(nanometer))
-
-
-# In[ ]:
-
-
-add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
 
 
 # In[ ]:
@@ -2000,6 +2013,9 @@ interchange = force_field.create_interchange(
 )
 system = interchange.to_openmm_system(hydrogen_mass=3.024)
 
+# add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
+add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
+
 openmm_positions = Quantity(
     value=[
         Vec3(
@@ -2022,12 +2038,6 @@ with open(f"{prepared_data}/aligned_structure.pickle", "rb") as f:
 structure.strip(":2SJ")
 
 model = Modeller(model.topology, structure.positions.in_units_of(nanometer))
-
-
-# In[ ]:
-
-
-add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
 
 
 # In[ ]:
@@ -2228,7 +2238,7 @@ _ = ray.get(futures)
 simulation_parameters = {
     "temperatures": np.arange(0.0, 298.15, 1.0),
     "time_per_temp": 20 * picoseconds,
-    "equilibration_time": 25 * nanoseconds,
+    "equilibration_time": 15 * nanoseconds,
     "friction": 1 / picosecond,
     "timestep": 0.5 * femtoseconds,
 }
@@ -2251,7 +2261,7 @@ simulation_parameters = {
     "temperature": 298.15,
     "friction": 1 / picosecond,
     "timestep": 2 * femtoseconds,
-    "production_time": 15 * nanoseconds,
+    "production_time": 25 * nanoseconds,
     "dcd_reporter_frequency": 1000,
     "state_reporter_frequency": 1000,
     "suffix": "_protein_only",
@@ -2303,7 +2313,7 @@ print("deltaG_release_p", deltaG_release_p)
 # In[ ]:
 
 
-# if os.path.exists(f"{results_dirname}/results.pickle"):
+# if os.path.exists(f"results_4-13-25_OBC2/results.pickle"):
 #     with open(f"{results_dirname}/results.pickle", "rb") as f:
 #        deltaG_values = pickle.load(f)
 
