@@ -5,10 +5,10 @@
 #SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=1GB
-#SBATCH --time=5-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH -q hca-csd765
 #SBATCH --gpus-per-task=8
-#SBATCH --nodes=5
+#SBATCH --nodes=4
 #SBATCH -A ddp325
 
 Folder=$(pwd)

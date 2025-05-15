@@ -49,9 +49,9 @@ logger.addHandler(stream_handler)
 force_fields = "force_fields"
 initial_data = "initial_data"
 prepared_data = "prepared_data"
-# working_data = "/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/results_4-13-25_OBC2/data/ucsd/gilsonlab/jta002/working_data"
+working_data = "/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/results_4-28-25_OBC2/data/ucsd/gilsonlab/jta002/working_data"
 # working_data = "/tscc/lustre/ddn/scratch/jta002/working-data"
-working_data = "/data/ucsd/gilsonlab/jta002/working_data"
+# working_data = "/data/ucsd/gilsonlab/jta002/working_data"
 # working_data = "working_data"
 results_dirname = "results"
 
@@ -738,7 +738,7 @@ from paprika import restraints
 from paprika.restraints.openmm import apply_dat_restraint, apply_positional_restraints
 
 # Generate lambda values with diffs growing exponentially
-K = 35   # Total number of windows
+K = 49   # Total number of windows
 i = np.arange(K)
 attach_l_fractions = 1 - np.exp(-3 * i / (K - 1))
 attach_l_fractions /= attach_l_fractions[-1]  # Normalize to make the last value 1.0
@@ -933,7 +933,7 @@ D1_BOUND_VALUE = openff_unit.Quantity(
     value=np.linalg.norm(N1_L1_vector), units=openff_unit.angstrom
 )  # This should be very close to 5A
 N1_L1_distance.attach["fraction_list"] = attach_l_fractions * 100
-N1_L1_distance.attach["fc_final"] = 5/10  # kilocalorie/(mole*angstrom**2)
+N1_L1_distance.attach["fc_final"] = (5/10)/3  # kilocalorie/(mole*angstrom**2)
 N1_L1_distance.attach["fc_initial"] = 0
 N1_L1_distance.initialize()
 attach_l_restraints_dynamic.append(N1_L1_distance)
@@ -986,7 +986,7 @@ L1_L2_vector = np.array(
 #         / (np.linalg.norm(L1_N1_vector) * np.linalg.norm(L1_L2_vector))
 #     )
 # )  # Degrees
-N1_L1_L2_angle.attach["target"] = 120  # Degrees
+N1_L1_L2_angle.attach["target"] = 75  # Degrees
 N1_L1_L2_angle.attach["fraction_list"] = attach_l_fractions * 100
 N1_L1_L2_angle.attach["fc_final"] = 100/10  # kilocalorie/(mole*radian**2)
 N1_L1_L2_angle.initialize()
@@ -1048,7 +1048,7 @@ norm1, norm2 = np.cross(N2_N1_vector, N1_L1_vector), np.cross(
 # N2_N1_L1_L2_torsion.attach["target"] = np.degrees(
 #     np.arccos(np.dot(norm1, norm2) / (np.linalg.norm(norm1) * np.linalg.norm(norm2)))
 # )
-N2_N1_L1_L2_torsion.attach["target"] = -40  # Degrees
+N2_N1_L1_L2_torsion.attach["target"] = 20  # Degrees
 N2_N1_L1_L2_torsion.attach["fraction_list"] = attach_l_fractions * 100
 N2_N1_L1_L2_torsion.attach["fc_final"] = (100/10)/4  # kilocalorie/(mole*radian**2)
 N2_N1_L1_L2_torsion.initialize()
@@ -1126,6 +1126,7 @@ window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
 
 # _ = generate_histograms(attach_l_restraints_static + attach_l_restraints_dynamic, "attach_l_restraints", [window_list[i] for i in [0, 1, -2, -1]], aligned_dummy_structure, data_dir_names)
 
+    
 
 
 # In[ ]:
@@ -2310,18 +2311,23 @@ print("deltaG_release_p", deltaG_release_p)
 
 # ## Save the results
 
-# In[ ]:
+# In[2]:
 
 
-# if os.path.exists(f"results_4-13-25_OBC2/results.pickle"):
-#     with open(f"{results_dirname}/results.pickle", "rb") as f:
-#        deltaG_values = pickle.load(f)
+existing_reuslts_path = f"/data/ucsd/gilsonlab/jta002/results_4-28-25_OBC2/results.pickle"
 
-with open(f"{results_dirname}/results.pickle", "wb") as f:
-   pickle.dump(deltaG_values, f)
+if os.path.exists(existing_reuslts_path):
+    with open(existing_reuslts_path, "rb") as f:
+       deltaG_values = pickle.load(f)
+
+else:
+    raise IOError
+
+# with open(f"{results_dirname}/results.pickle", "wb") as f:
+#    pickle.dump(deltaG_values, f)
 
 
-# In[ ]:
+# In[3]:
 
 
 deltaG_values["release_l"] = {}
@@ -2339,7 +2345,7 @@ deltaG_values["release_l"]["sem"] = np.sqrt(deltaG_values["deltaG_release_l"]["s
 #                                             + deltaG_values["deltaG_release_conf"]["sem"]**2)
 
 
-# In[ ]:
+# In[4]:
 
 
 deltaG_values["total"] = {}
@@ -2354,7 +2360,7 @@ deltaG_values["total"]["sem"] = np.sqrt(deltaG_values["deltaG_attach_p"]["sem"]*
                                        + deltaG_values["deltaG_release_p"]["sem"]**2)
 
 
-# In[ ]:
+# In[5]:
 
 
 for key in deltaG_values.keys():
@@ -2368,6 +2374,12 @@ for key in deltaG_values.keys():
 # In[ ]:
 
 
-with open(f"{results_dirname}/results.pickle", "wb") as f:
-   pickle.dump(deltaG_values, f)
+# with open(f"{results_dirname}/results.pickle", "wb") as f:
+#    pickle.dump(deltaG_values, f)
+
+
+# In[ ]:
+
+
+
 
