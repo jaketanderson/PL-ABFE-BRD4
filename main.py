@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import itertools
@@ -49,10 +49,11 @@ logger.addHandler(stream_handler)
 force_fields = "force_fields"
 initial_data = "initial_data"
 prepared_data = "prepared_data"
-working_data = "/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/results_4-28-25_OBC2/data/ucsd/gilsonlab/jta002/working_data"
+# working_data = "/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/results_4-28-25_OBC2/data/ucsd/gilsonlab/jta002/working_data"
 # working_data = "/tscc/lustre/ddn/scratch/jta002/working-data"
 # working_data = "/data/ucsd/gilsonlab/jta002/working_data"
 # working_data = "working_data"
+working_data = "/data/ucsd/gilsonlab/jta002/results_4-28-25_OBC2/data/ucsd/gilsonlab/jta002/working_data/"
 results_dirname = "results"
 
 data_dir_names = {
@@ -63,7 +64,7 @@ data_dir_names = {
 }
 
 
-# In[ ]:
+# In[2]:
 
 
 def add_CustomGB_force(xml_filename: str, system: openmm.System):
@@ -127,7 +128,7 @@ def add_CustomGB_force(xml_filename: str, system: openmm.System):
 
 # ## Prepare the system
 
-# In[ ]:
+# In[3]:
 
 
 def create_protein_mol():
@@ -231,7 +232,7 @@ except:
     protein_mol = create_protein_mol()
 
 
-# In[ ]:
+# In[4]:
 
 
 def create_ligand_mol():
@@ -258,7 +259,7 @@ except:
     ligand_mol = create_ligand_mol()
 
 
-# In[ ]:
+# In[5]:
 
 
 # from openmmforcefields.generators import (
@@ -277,7 +278,7 @@ except:
 # model.addSolvent(forcefield, padding=1.2*nanometers)
 
 
-# In[ ]:
+# In[6]:
 
 
 implicit_solvent = True
@@ -302,8 +303,9 @@ if implicit_solvent:
         allow_nonintegral_charges=True,
     )
 
-    # add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
-    add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
+    add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
+    # add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
+    # add_CustomGB_force(f"{force_fields}/OBC_Logistic_ReplicatesOBC2.offxml", system)
     
     openmm_positions = Quantity(
         value=[
@@ -335,7 +337,7 @@ else:
     forcefield.registerTemplateGenerator(gaff.generator)
 
 
-# In[ ]:
+# In[7]:
 
 
 from paprika.build import align
@@ -354,7 +356,7 @@ align.translate_to_origin(structure)
 align.zalign(structure, A1, A2)
 
 
-# In[ ]:
+# In[8]:
 
 
 P1 = f":{110-42}@CA"  # ":ILE@C365x"
@@ -366,7 +368,7 @@ L2 = ":2SJ@C10"  # ":2SJ@C6x"
 L3 = ":2SJ@C19"  # ":2SJ@C19x"
 
 
-# In[ ]:
+# In[9]:
 
 
 # Ensure that P1 lies on the YZ plane
@@ -417,7 +419,7 @@ N3_pos = Quantity(
 )
 
 
-# In[ ]:
+# In[10]:
 
 
 # Give the dummy atoms mass of lead (207.2) and set the nonbonded forces for the dummy atoms to have charge 0 and LJ parameters epsilon=sigma=0.
@@ -461,7 +463,7 @@ aligned_dummy_structure = pmd.openmm.load_topology(
 )
 
 
-# In[ ]:
+# In[11]:
 
 
 N1 = ":DM1@DUM"
@@ -474,7 +476,7 @@ ASP88_3 = f":{88-42}@C"  # Asp88 C
 ASP88_4 = f":{89-42}@N"  # Ala89 N
 
 
-# In[ ]:
+# In[12]:
 
 
 for mask in [
@@ -500,7 +502,7 @@ for mask in [
         print(mask)
 
 
-# In[ ]:
+# In[13]:
 
 
 deltaG_values = {}
@@ -508,7 +510,7 @@ deltaG_values = {}
 
 # ## Calculate $\Delta G_{attach,p}$
 
-# In[ ]:
+# In[14]:
 
 
 from paprika import restraints
@@ -630,80 +632,80 @@ restraints.restraints.check_restraints(attach_p_restraints_dynamic)
 window_list = restraints.utils.create_window_list(attach_p_restraints_dynamic)
 
 
-# In[ ]:
+# In[15]:
 
 
-from simulate import run_heating_and_equil, run_minimization, run_production
+#  from simulate import run_heating_and_equil, run_minimization, run_production
 
-simulation_parameters = {
-    "k_pos": 50 * kilocalorie / (mole * angstrom**2),
-    "friction": 1 / picosecond,
-    "timestep": 1 * femtoseconds,
-    "tolerance": 0.0001 * kilojoules_per_mole / nanometer,
-    "maxIterations": 0,
-}
+#  simulation_parameters = {
+#      "k_pos": 50 * kilocalorie / (mole * angstrom**2),
+#      "friction": 1 / picosecond,
+#      "timestep": 1 * femtoseconds,
+#      "tolerance": 0.0001 * kilojoules_per_mole / nanometer,
+#      "maxIterations": 0,
+#  }
 
-futures = [
-  run_minimization.remote(
-      window,
-      system,
-      model,
-      attach_p_restraints_static + attach_p_restraints_dynamic,
-      "attach_p_restraints",
-      simulation_parameters=simulation_parameters,
-      data_dir_names=data_dir_names,
-  )
-  for window in window_list
-]
-_ = ray.get(futures)
-
-
-simulation_parameters = {
-    "temperatures": np.arange(0.0, 298.15, 10.0),
-    "time_per_temp": 20 * picoseconds,
-    "equilibration_time": 15 * nanoseconds,
-    "friction": 1 / picosecond,
-    "timestep": 1 * femtoseconds,
-}
-
-futures = [
-   run_heating_and_equil.remote(
-       window,
-       system,
-       model,
-       "attach_p_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#    run_minimization.remote(
+#        window,
+#        system,
+#        model,
+#        attach_p_restraints_static + attach_p_restraints_dynamic,
+#        "attach_p_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
 
 
-simulation_parameters = {
-   "temperature": 298.15,
-   "friction": 1 / picosecond,
-   "timestep": 2 * femtoseconds,
-   "production_time": 25 * nanoseconds,
-   "dcd_reporter_frequency": 1000,
-   "state_reporter_frequency": 1000,
-}
+#  simulation_parameters = {
+#      "temperatures": np.arange(0.0, 298.15, 10.0),
+#      "time_per_temp": 20 * picoseconds,
+#      "equilibration_time": 15 * nanoseconds,
+#      "friction": 1 / picosecond,
+#      "timestep": 1 * femtoseconds,
+#  }
 
-futures = [
-  run_production.remote(
-      window,
-      system,
-      model,
-      "attach_p_restraints",
-      simulation_parameters=simulation_parameters,
-      data_dir_names=data_dir_names,
-  )
-  for window in window_list
-]
-_ = ray.get(futures)
+#  futures = [
+#     run_heating_and_equil.remote(
+#         window,
+#         system,
+#         model,
+#         "attach_p_restraints",
+#         simulation_parameters=simulation_parameters,
+#         data_dir_names=data_dir_names,
+#     )
+#     for window in window_list
+#  ]
+#  _ = ray.get(futures)
 
 
-# In[ ]:
+# simulation_parameters = {
+#     "temperature": 298.15,
+#     "friction": 1 / picosecond,
+#     "timestep": 2 * femtoseconds,
+#     "production_time": 25 * nanoseconds,
+#     "dcd_reporter_frequency": 1000,
+#     "state_reporter_frequency": 1000,
+# }
+
+# futures = [
+#    run_production.remote(
+#        window,
+#        system,
+#        model,
+#        "attach_p_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
+
+
+# In[16]:
 
 
 import paprika.analysis as analysis
@@ -731,7 +733,7 @@ print("deltaG_attach_p", deltaG_attach_p)
 
 # ## Calculate $\Delta G_{attach,l}$
 
-# In[ ]:
+# In[17]:
 
 
 from paprika import restraints
@@ -1092,7 +1094,7 @@ restraints.restraints.check_restraints(attach_l_restraints_dynamic)
 window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
 
 
-# In[ ]:
+# In[18]:
 
 
 # import mdtraj as md
@@ -1119,7 +1121,7 @@ window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
 
 
 
-# In[ ]:
+# In[19]:
 
 
 # from analyze import generate_histograms
@@ -1129,80 +1131,80 @@ window_list = restraints.utils.create_window_list(attach_l_restraints_dynamic)
     
 
 
-# In[ ]:
+# In[20]:
 
 
-from simulate import run_heating_and_equil, run_minimization, run_production
+# from simulate import run_heating_and_equil, run_minimization, run_production
 
-simulation_parameters = {
-    "k_pos": 50 * kilocalorie / (mole * angstrom**2),
-    "friction": 1 / picosecond,
-    "timestep": 1 * femtoseconds,
-    "tolerance": 0.5 * kilojoules_per_mole / nanometer,
-    "maxIterations": 0,
-}
+# simulation_parameters = {
+#     "k_pos": 50 * kilocalorie / (mole * angstrom**2),
+#     "friction": 1 / picosecond,
+#     "timestep": 1 * femtoseconds,
+#     "tolerance": 0.5 * kilojoules_per_mole / nanometer,
+#     "maxIterations": 0,
+# }
 
-futures = [
-   run_minimization.remote(
-       window,
-       system,
-       model,
-       attach_l_restraints_static + attach_l_restraints_dynamic,
-       "attach_l_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
-
-
-simulation_parameters = {
-    "temperatures": np.arange(0.0, 298.15, 10.0),
-    "time_per_temp": 20 * picoseconds,
-    "equilibration_time": 15 * nanoseconds,
-    "friction": 1 / picosecond,
-    "timestep": 1 * femtoseconds,
-}
-
-futures = [
-   run_heating_and_equil.remote(
-       window,
-       system,
-       model,
-       "attach_l_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#    run_minimization.remote(
+#        window,
+#        system,
+#        model,
+#        attach_l_restraints_static + attach_l_restraints_dynamic,
+#        "attach_l_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
 
 
-simulation_parameters = {
-    "temperature": 298.15,
-    "friction": 1 / picosecond,
-    "timestep": 2 * femtoseconds,
-    "production_time": 25 * nanoseconds,
-    "dcd_reporter_frequency": 1000,
-    "state_reporter_frequency": 1000,
-}
+# simulation_parameters = {
+#     "temperatures": np.arange(0.0, 298.15, 10.0),
+#     "time_per_temp": 20 * picoseconds,
+#     "equilibration_time": 15 * nanoseconds,
+#     "friction": 1 / picosecond,
+#     "timestep": 1 * femtoseconds,
+# }
 
-futures = [
-   run_production.remote(
-       window,
-       system,
-       model,
-       "attach_l_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#    run_heating_and_equil.remote(
+#        window,
+#        system,
+#        model,
+#        "attach_l_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
 
 
-# In[ ]:
+# simulation_parameters = {
+#     "temperature": 298.15,
+#     "friction": 1 / picosecond,
+#     "timestep": 2 * femtoseconds,
+#     "production_time": 25 * nanoseconds,
+#     "dcd_reporter_frequency": 1000,
+#     "state_reporter_frequency": 1000,
+# }
+
+# futures = [
+#    run_production.remote(
+#        window,
+#        system,
+#        model,
+#        "attach_l_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
+
+
+# In[21]:
 
 
 import paprika.analysis as analysis
@@ -1227,7 +1229,7 @@ deltaG_values["deltaG_attach_l"] = deltaG_attach_l
 print("deltaG_attach_l", deltaG_attach_l)
 
 
-# In[ ]:
+# In[22]:
 
 
 # import importlib
@@ -1240,7 +1242,7 @@ print("deltaG_attach_l", deltaG_attach_l)
 
 # ## Calculate $\Delta G_{pull}$
 
-# In[ ]:
+# In[23]:
 
 
 from paprika import restraints
@@ -1443,80 +1445,80 @@ restraints.restraints.check_restraints(pull_restraints_dynamic)
 window_list = restraints.utils.create_window_list(pull_restraints_dynamic)
 
 
-# In[ ]:
+# In[24]:
 
 
-from simulate import run_heating_and_equil, run_minimization, run_production
+# from simulate import run_heating_and_equil, run_minimization, run_production
 
-simulation_parameters = {
-   "k_pos": 50 * kilocalorie / (mole * angstrom**2),
-   "friction": 1 / picosecond,
-   "timestep": 1 * femtoseconds,
-   "tolerance": 0.001 * kilojoules_per_mole / nanometer,
-   "maxIterations": 0,
-}
+# simulation_parameters = {
+#    "k_pos": 50 * kilocalorie / (mole * angstrom**2),
+#    "friction": 1 / picosecond,
+#    "timestep": 1 * femtoseconds,
+#    "tolerance": 0.001 * kilojoules_per_mole / nanometer,
+#    "maxIterations": 0,
+# }
 
-futures = [
-   run_minimization.remote(
-       window,
-       system,
-       model,
-       pull_restraints_static + pull_restraints_dynamic,
-       "pull_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
-
-
-simulation_parameters = {
-   "temperatures": np.arange(0.0, 298.15, 10.0),
-   "time_per_temp": 20 * picoseconds,
-   "equilibration_time": 15 * nanoseconds,
-   "friction": 1 / picosecond,
-   "timestep": 1 * femtoseconds,
-}
-
-futures = [
-   run_heating_and_equil.remote(
-       window,
-       system,
-       model,
-       "pull_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#    run_minimization.remote(
+#        window,
+#        system,
+#        model,
+#        pull_restraints_static + pull_restraints_dynamic,
+#        "pull_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
 
 
-simulation_parameters = {
-   "temperature": 298.15,
-   "friction": 1 / picosecond,
-   "timestep": 2 * femtoseconds,
-   "production_time": 25 * nanoseconds,
-   "dcd_reporter_frequency": 1000,
-   "state_reporter_frequency": 1000,
-}
+# simulation_parameters = {
+#    "temperatures": np.arange(0.0, 298.15, 10.0),
+#    "time_per_temp": 20 * picoseconds,
+#    "equilibration_time": 15 * nanoseconds,
+#    "friction": 1 / picosecond,
+#    "timestep": 1 * femtoseconds,
+# }
 
-futures = [
-   run_production.remote(
-       window,
-       system,
-       model,
-       "pull_restraints",
-       simulation_parameters=simulation_parameters,
-       data_dir_names=data_dir_names,
-   )
-   for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#    run_heating_and_equil.remote(
+#        window,
+#        system,
+#        model,
+#        "pull_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
 
 
-# In[ ]:
+# simulation_parameters = {
+#    "temperature": 298.15,
+#    "friction": 1 / picosecond,
+#    "timestep": 2 * femtoseconds,
+#    "production_time": 25 * nanoseconds,
+#    "dcd_reporter_frequency": 1000,
+#    "state_reporter_frequency": 1000,
+# }
+
+# futures = [
+#    run_production.remote(
+#        window,
+#        system,
+#        model,
+#        "pull_restraints",
+#        simulation_parameters=simulation_parameters,
+#        data_dir_names=data_dir_names,
+#    )
+#    for window in window_list
+# ]
+# _ = ray.get(futures)
+
+
+# In[25]:
 
 
 import paprika.analysis as analysis
@@ -1544,7 +1546,7 @@ print("deltaG_pull", deltaG_pull)
 
 # ## Calculate $\Delta G_{release,l}$
 
-# In[ ]:
+# In[26]:
 
 
 # We only need to simulate the ligand
@@ -1559,8 +1561,9 @@ system = force_field.create_openmm_system(
     allow_nonintegral_charges=True,
 )
 
-# add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
-add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
+add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
+# add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
+# add_CustomGB_force(f"{force_fields}/OBC_Logistic_ReplicatesOBC2.offxml", system)
 
 openmm_positions = Quantity(
     value=[
@@ -1585,7 +1588,7 @@ structure.strip("!:2SJ")
 model = Modeller(model.topology, structure.positions.in_units_of(nanometer))
 
 
-# In[ ]:
+# In[27]:
 
 
 # Give the dummy atoms mass of lead (207.2) and set the nonbonded forces for the dummy atoms to have charge 0 and LJ parameters epsilon=sigma=0.
@@ -1629,7 +1632,7 @@ aligned_dummy_structure = pmd.openmm.load_topology(
 )
 
 
-# In[ ]:
+# In[28]:
 
 
 from paprika import restraints
@@ -1875,7 +1878,7 @@ restraints.restraints.check_restraints(release_l_restraints_dynamic)
 window_list = restraints.utils.create_window_list(release_l_restraints_dynamic)
 
 
-# In[ ]:
+# In[29]:
 
 
 from simulate import run_heating_and_equil, run_minimization, run_production
@@ -1951,7 +1954,7 @@ futures = [
 _ = ray.get(futures)
 
 
-# In[ ]:
+# In[30]:
 
 
 import paprika.analysis as analysis
@@ -1977,7 +1980,7 @@ deltaG_values["deltaG_release_l"] = deltaG_release_l
 print("deptaG_release_l", deltaG_release_l)
 
 
-# In[ ]:
+# In[31]:
 
 
 import paprika.analysis as analysis
@@ -1998,7 +2001,7 @@ print("deltaG_release_l_std", deltaG_release_l_std)
 
 # ## Calculate $\Delta G_{release,p}$
 
-# In[ ]:
+# In[32]:
 
 
 # We only need to simulate the protein
@@ -2014,8 +2017,9 @@ interchange = force_field.create_interchange(
 )
 system = interchange.to_openmm_system(hydrogen_mass=3.024)
 
-# add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
-add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
+add_CustomGB_force(f"{force_fields}/GBSA-OBC2.offxml", system)
+# add_CustomGB_force(f"{force_fields}/OBC_Logistic.offxml", system)
+# add_CustomGB_force(f"{force_fields}/OBC_Logistic_ReplicatesOBC2.offxml", system)
 
 openmm_positions = Quantity(
     value=[
@@ -2041,7 +2045,7 @@ structure.strip(":2SJ")
 model = Modeller(model.topology, structure.positions.in_units_of(nanometer))
 
 
-# In[ ]:
+# In[33]:
 
 
 # Give the dummy atoms mass of lead (207.2) and set the nonbonded forces for the dummy atoms to have charge 0 and LJ parameters epsilon=sigma=0.
@@ -2085,7 +2089,7 @@ aligned_dummy_structure = pmd.openmm.load_topology(
 )
 
 
-# In[ ]:
+# In[34]:
 
 
 from paprika import restraints
@@ -2208,82 +2212,82 @@ restraints.restraints.check_restraints(release_p_restraints_dynamic)
 window_list = restraints.utils.create_window_list(release_p_restraints_dynamic)
 
 
-# In[ ]:
+# In[35]:
 
 
-from simulate import run_heating_and_equil, run_minimization, run_production
+# from simulate import run_heating_and_equil, run_minimization, run_production
 
-simulation_parameters = {
-    "k_pos": 50 * kilocalorie / (mole * angstrom**2),
-    "friction": 1 / picosecond,
-    "timestep": 1 * femtoseconds,
-    "tolerance": 0.001 * kilojoules_per_mole / nanometer,
-    "maxIterations": 0,
-}
+# simulation_parameters = {
+#     "k_pos": 50 * kilocalorie / (mole * angstrom**2),
+#     "friction": 1 / picosecond,
+#     "timestep": 1 * femtoseconds,
+#     "tolerance": 0.001 * kilojoules_per_mole / nanometer,
+#     "maxIterations": 0,
+# }
 
-futures = [
-    run_minimization.remote(
-        window,
-        system,
-        model,
-        release_p_restraints_dynamic,
-        "release_p_restraints",
-        simulation_parameters=simulation_parameters,
-        data_dir_names=data_dir_names,
-        suffix="_protein_only",
-    )
-    for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#     run_minimization.remote(
+#         window,
+#         system,
+#         model,
+#         release_p_restraints_dynamic,
+#         "release_p_restraints",
+#         simulation_parameters=simulation_parameters,
+#         data_dir_names=data_dir_names,
+#         suffix="_protein_only",
+#     )
+#     for window in window_list
+# ]
+# _ = ray.get(futures)
 
-simulation_parameters = {
-    "temperatures": np.arange(0.0, 298.15, 1.0),
-    "time_per_temp": 20 * picoseconds,
-    "equilibration_time": 15 * nanoseconds,
-    "friction": 1 / picosecond,
-    "timestep": 0.5 * femtoseconds,
-}
+# simulation_parameters = {
+#     "temperatures": np.arange(0.0, 298.15, 1.0),
+#     "time_per_temp": 20 * picoseconds,
+#     "equilibration_time": 15 * nanoseconds,
+#     "friction": 1 / picosecond,
+#     "timestep": 0.5 * femtoseconds,
+# }
 
-futures = [
-    run_heating_and_equil.remote(
-        window,
-        system,
-        model,
-        "release_p_restraints",
-        simulation_parameters=simulation_parameters,
-        data_dir_names=data_dir_names,
-        suffix="_protein_only",
-    )
-    for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#     run_heating_and_equil.remote(
+#         window,
+#         system,
+#         model,
+#         "release_p_restraints",
+#         simulation_parameters=simulation_parameters,
+#         data_dir_names=data_dir_names,
+#         suffix="_protein_only",
+#     )
+#     for window in window_list
+# ]
+# _ = ray.get(futures)
 
-simulation_parameters = {
-    "temperature": 298.15,
-    "friction": 1 / picosecond,
-    "timestep": 2 * femtoseconds,
-    "production_time": 25 * nanoseconds,
-    "dcd_reporter_frequency": 1000,
-    "state_reporter_frequency": 1000,
-    "suffix": "_protein_only",
-}
+# simulation_parameters = {
+#     "temperature": 298.15,
+#     "friction": 1 / picosecond,
+#     "timestep": 2 * femtoseconds,
+#     "production_time": 25 * nanoseconds,
+#     "dcd_reporter_frequency": 1000,
+#     "state_reporter_frequency": 1000,
+#     "suffix": "_protein_only",
+# }
 
-futures = [
-    run_production.remote(
-        window,
-        system,
-        model,
-        "release_p_restraints",
-        simulation_parameters=simulation_parameters,
-        data_dir_names=data_dir_names,
-        suffix="_protein_only",
-    )
-    for window in window_list
-]
-_ = ray.get(futures)
+# futures = [
+#     run_production.remote(
+#         window,
+#         system,
+#         model,
+#         "release_p_restraints",
+#         simulation_parameters=simulation_parameters,
+#         data_dir_names=data_dir_names,
+#         suffix="_protein_only",
+#     )
+#     for window in window_list
+# ]
+# _ = ray.get(futures)
 
 
-# In[ ]:
+# In[36]:
 
 
 import paprika.analysis as analysis
@@ -2311,13 +2315,14 @@ print("deltaG_release_p", deltaG_release_p)
 
 # ## Save the results
 
-# In[2]:
+# In[37]:
 
 
-existing_reuslts_path = f"/data/ucsd/gilsonlab/jta002/results_4-28-25_OBC2/results.pickle"
+# existing_results_path = f"/data/ucsd/gilsonlab/jta002/results_4-28-25_OBC2/results.pickle"
+existing_results_path = f"results/results.pickle"
 
-if os.path.exists(existing_reuslts_path):
-    with open(existing_reuslts_path, "rb") as f:
+if os.path.exists(existing_results_path):
+    with open(existing_results_path, "rb") as f:
        deltaG_values = pickle.load(f)
 
 else:
@@ -2327,12 +2332,12 @@ else:
 #    pickle.dump(deltaG_values, f)
 
 
-# In[3]:
+# In[38]:
 
 
 deltaG_values["release_l"] = {}
 deltaG_values["release_l"]["fe"] = (deltaG_values["deltaG_release_l"]["fe"]
-                                    + deltaG_values["deltaG_release_l_std"]["fe"])
+                                    + -1*deltaG_values["deltaG_release_l_std"]["fe"])
 deltaG_values["release_l"]["sem"] = np.sqrt(deltaG_values["deltaG_release_l"]["sem"]**2
                                             + deltaG_values["deltaG_release_l_std"]["sem"]**2)
 
@@ -2345,22 +2350,23 @@ deltaG_values["release_l"]["sem"] = np.sqrt(deltaG_values["deltaG_release_l"]["s
 #                                             + deltaG_values["deltaG_release_conf"]["sem"]**2)
 
 
-# In[4]:
+# In[39]:
 
 
 deltaG_values["total"] = {}
-deltaG_values["total"]["fe"] = -1 * (deltaG_values["deltaG_attach_p"]["fe"]
-                                     + deltaG_values["deltaG_attach_l"]["fe"]
-                                     + deltaG_values["deltaG_pull"]["fe"]
-                                     + deltaG_values["release_l"]["fe"]
-                                     + deltaG_values["deltaG_release_p"]["fe"])
+deltaG_values["total"]["fe"] = (deltaG_values["deltaG_attach_p"]["fe"]
+                                + deltaG_values["deltaG_attach_l"]["fe"]
+                                + deltaG_values["deltaG_pull"]["fe"]
+                                + -1*deltaG_values["release_l"]["fe"]
+                                + -1*deltaG_values["deltaG_release_p"]["fe"])
 deltaG_values["total"]["sem"] = np.sqrt(deltaG_values["deltaG_attach_p"]["sem"]**2
                                        + deltaG_values["deltaG_attach_l"]["sem"]**2
+                                       + deltaG_values["deltaG_pull"]["sem"]**2
                                        + deltaG_values["release_l"]["sem"]**2
                                        + deltaG_values["deltaG_release_p"]["sem"]**2)
 
 
-# In[5]:
+# In[40]:
 
 
 for key in deltaG_values.keys():
@@ -2371,7 +2377,7 @@ for key in deltaG_values.keys():
         print("\n")
 
 
-# In[ ]:
+# In[41]:
 
 
 # with open(f"{results_dirname}/results.pickle", "wb") as f:
