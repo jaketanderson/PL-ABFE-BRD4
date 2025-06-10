@@ -107,7 +107,8 @@ def run_minimization(
         f.write(XmlSerializer.serialize(system))
 
     integrator = LangevinMiddleIntegrator(0 * kelvin, friction, timestep)
-    integrator.setRandomNumberSeed(12345)
+    # integrator.setRandomNumberSeed(12345)  # Replicate 0
+    integrator.setRandomNumberSeed(23456)  # Replicate 1
     platform = Platform.getPlatformByName("CUDA")
     properties = {"DeviceIndex": "0"}
     simulation = Simulation(model.topology, system,
@@ -174,7 +175,8 @@ def run_heating_and_equil(
         system = XmlSerializer.deserialize(f.read())
 
     integrator = LangevinMiddleIntegrator(298.15 * kelvin, friction, timestep)
-    integrator.setRandomNumberSeed(12345)
+    # integrator.setRandomNumberSeed(12345)  # Replicate 0
+    integrator.setRandomNumberSeed(23456)  # Replicate 1
     platform = Platform.getPlatformByName("CUDA")
     properties = {"DeviceIndex": "0", "Precision": "mixed"}
     simulation = Simulation(model.topology, system,
@@ -272,7 +274,8 @@ def run_production(
         system = XmlSerializer.deserialize(f.read())
 
     integrator = LangevinMiddleIntegrator(temperature, friction, timestep)
-    integrator.setRandomNumberSeed(12345)
+    # integrator.setRandomNumberSeed(12345)  # Replicate 0
+    integrator.setRandomNumberSeed(23456)  # Replicate 1
     platform = Platform.getPlatformByName("CUDA")
     properties = {"DeviceIndex": "0", "Precision": "mixed"}
     simulation = Simulation(model.topology, system,
@@ -301,7 +304,7 @@ def run_production(
     try:
         simulation.step(int(production_time / timestep))
     except Exception as e:
-        with open("/home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4/ERROR", "a+") as f:
+        with open("ERRORERROR", "a+") as f:
             f.write(f"Production exception {e} happened during window {window}!\n")
     positions = simulation.context.getState(getPositions=True).getPositions()
 

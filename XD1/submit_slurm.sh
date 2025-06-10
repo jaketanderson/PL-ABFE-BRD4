@@ -8,7 +8,7 @@
 #SBATCH --time=2-00:00:00
 #SBATCH -q hca-csd765
 #SBATCH --gpus-per-task=8
-#SBATCH --nodes=7
+#SBATCH --nodes=4
 #SBATCH -A ddp325
 
 Folder=$(pwd)
@@ -23,7 +23,7 @@ export OPENMM_PLUGIN_DIR="$HOME/miniconda3/envs/openff-evaluator-6/lib/plugins"
 export OE_LICENSE="$HOME/oe_license.txt"
 export JAX_ENABLE_X64=True
 
-cd /home/jta002/workspace/PL-ABFE/PL-ABFE-BRD4
+cd ${Folder}/
 
 echo "Starting job at $(date)"
 

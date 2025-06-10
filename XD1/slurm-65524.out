@@ -1,0 +1,98 @@
+no change     /home/jta002/miniconda3/condabin/conda
+no change     /home/jta002/miniconda3/bin/conda
+no change     /home/jta002/miniconda3/bin/conda-env
+no change     /home/jta002/miniconda3/bin/activate
+no change     /home/jta002/miniconda3/bin/deactivate
+no change     /home/jta002/miniconda3/etc/profile.d/conda.sh
+no change     /home/jta002/miniconda3/etc/fish/conf.d/conda.fish
+no change     /home/jta002/miniconda3/shell/condabin/Conda.psm1
+no change     /home/jta002/miniconda3/shell/condabin/conda-hook.ps1
+no change     /home/jta002/miniconda3/lib/python3.12/site-packages/xontrib/conda.xsh
+no change     /home/jta002/miniconda3/etc/profile.d/conda.csh
+no change     /home/jta002/.bashrc
+No action taken.
+Starting job at Tue Jun 10 02:40:55 PM PDT 2025
+IP Head: 10.141.0.16:5379
+Starting HEAD at node16
+8
+Starting WORKER 1 at node17
+2025-06-10 14:40:57,399 - INFO - NumExpr defaulting to 16 threads.
+2025-06-10 14:40:57,408 - INFO - NumExpr defaulting to 16 threads.
+[2025-06-10 14:41:00,027 W 849468 849468] global_state_accessor.cc:463: Retrying to get node with node ID 77431711f8b73619cc26f8bd93110c601d7a7d977868eaae618330b2
+2025-06-10 14:40:57,662	INFO usage_lib.py:467 -- Usage stats collection is enabled by default without user confirmation because this terminal is detected to be non-interactive. To disable this, add `--disable-usage-stats` to the command that starts the cluster, or run the following command: `ray disable-usage-stats` before starting the cluster. See https://docs.ray.io/en/master/cluster/usage-stats.html for more details.
+2025-06-10 14:40:57,662	INFO scripts.py:778 -- [37mLocal node IP[39m: [1m10.141.0.16[22m
+2025-06-10 14:41:00,027	SUCC scripts.py:815 -- [32m--------------------[39m
+2025-06-10 14:41:00,027	SUCC scripts.py:816 -- [32mRay runtime started.[39m
+2025-06-10 14:41:00,027	SUCC scripts.py:817 -- [32m--------------------[39m
+2025-06-10 14:41:00,027	INFO scripts.py:819 -- [36mNext steps[39m
+2025-06-10 14:41:00,027	INFO scripts.py:822 -- To add another node to this Ray cluster, run
+2025-06-10 14:41:00,027	INFO scripts.py:825 -- [1m  ray start --address='10.141.0.16:5379'[22m
+2025-06-10 14:41:00,027	INFO scripts.py:834 -- To connect to this Ray cluster:
+2025-06-10 14:41:00,028	INFO scripts.py:836 -- [35mimport[39m[26m ray
+2025-06-10 14:41:00,028	INFO scripts.py:837 -- ray[35m.[39m[26minit(_node_ip_address[35m=[39m[26m[33m'10.141.0.16'[39m[26m)
+2025-06-10 14:41:00,028	INFO scripts.py:849 -- To submit a Ray job using the Ray Jobs CLI:
+2025-06-10 14:41:00,028	INFO scripts.py:850 -- [1m  RAY_ADDRESS='http://127.0.0.1:8265' ray job submit --working-dir . -- python my_script.py[22m
+2025-06-10 14:41:00,028	INFO scripts.py:859 -- See https://docs.ray.io/en/latest/cluster/running-applications/job-submission/index.html 
+2025-06-10 14:41:00,028	INFO scripts.py:863 -- for more information on submitting Ray jobs to the Ray cluster.
+2025-06-10 14:41:00,028	INFO scripts.py:868 -- To terminate the Ray runtime, run
+2025-06-10 14:41:00,028	INFO scripts.py:869 -- [1m  ray stop[22m
+2025-06-10 14:41:00,028	INFO scripts.py:872 -- To view the status of the cluster, use
+2025-06-10 14:41:00,028	INFO scripts.py:873 --   [1mray status[22m[26m
+2025-06-10 14:41:00,028	INFO scripts.py:877 -- To monitor and debug Ray, view the dashboard at 
+2025-06-10 14:41:00,028	INFO scripts.py:878 --   [1m127.0.0.1:8265[22m[26m
+2025-06-10 14:41:00,028	INFO scripts.py:885 -- [4mIf connection to the dashboard fails, check your firewall settings and network configuration.[24m
+2025-06-10 14:41:00,028	INFO scripts.py:986 -- [36m[1m--block[22m[39m
+2025-06-10 14:41:00,028	INFO scripts.py:987 -- This command will now block forever until terminated by a signal.
+2025-06-10 14:41:00,028	INFO scripts.py:990 -- Running subprocesses are monitored and a message will be printed if any of them terminate unexpectedly. Subprocesses exit with SIGTERM will be treated as graceful, thus NOT reported.
+Starting WORKER 2 at node18
+2025-06-10 14:40:57,647	INFO scripts.py:960 -- [37mLocal node IP[39m: [1m10.141.0.17[22m
+2025-06-10 14:41:01,030	SUCC scripts.py:973 -- [32m--------------------[39m
+2025-06-10 14:41:01,030	SUCC scripts.py:974 -- [32mRay runtime started.[39m
+2025-06-10 14:41:01,031	SUCC scripts.py:975 -- [32m--------------------[39m
+2025-06-10 14:41:01,031	INFO scripts.py:977 -- To terminate the Ray runtime, run
+2025-06-10 14:41:01,031	INFO scripts.py:978 -- [1m  ray stop[22m
+2025-06-10 14:41:01,031	INFO scripts.py:986 -- [36m[1m--block[22m[39m
+2025-06-10 14:41:01,031	INFO scripts.py:987 -- This command will now block forever until terminated by a signal.
+2025-06-10 14:41:01,031	INFO scripts.py:990 -- Running subprocesses are monitored and a message will be printed if any of them terminate unexpectedly. Subprocesses exit with SIGTERM will be treated as graceful, thus NOT reported.
+2025-06-10 14:41:02,367 - INFO - NumExpr defaulting to 16 threads.
+[2025-06-10 14:41:02,678 W 849375 849375] global_state_accessor.cc:463: Retrying to get node with node ID c68199cb00372a654e35d8d9bbf5d318a2234b5d8efc2a281be7ecdb
+[2025-06-10 14:41:03,679 W 849375 849375] global_state_accessor.cc:463: Retrying to get node with node ID c68199cb00372a654e35d8d9bbf5d318a2234b5d8efc2a281be7ecdb
+2025-06-10 14:41:02,616	INFO scripts.py:960 -- [37mLocal node IP[39m: [1m10.141.0.18[22m
+2025-06-10 14:41:04,682	SUCC scripts.py:973 -- [32m--------------------[39m
+2025-06-10 14:41:04,683	SUCC scripts.py:974 -- [32mRay runtime started.[39m
+2025-06-10 14:41:04,683	SUCC scripts.py:975 -- [32m--------------------[39m
+2025-06-10 14:41:04,683	INFO scripts.py:977 -- To terminate the Ray runtime, run
+2025-06-10 14:41:04,683	INFO scripts.py:978 -- [1m  ray stop[22m
+2025-06-10 14:41:04,683	INFO scripts.py:986 -- [36m[1m--block[22m[39m
+2025-06-10 14:41:04,683	INFO scripts.py:987 -- This command will now block forever until terminated by a signal.
+2025-06-10 14:41:04,683	INFO scripts.py:990 -- Running subprocesses are monitored and a message will be printed if any of them terminate unexpectedly. Subprocesses exit with SIGTERM will be treated as graceful, thus NOT reported.
+Starting WORKER 3 at node19
+2025-06-10 14:41:07,419 - INFO - NumExpr defaulting to 16 threads.
+[2025-06-10 14:41:07,741 W 847020 847020] global_state_accessor.cc:463: Retrying to get node with node ID 7e8030c1d6b79c128fd7c054370219112e0884c4da3888b45e1301c1
+[2025-06-10 14:41:08,742 W 847020 847020] global_state_accessor.cc:463: Retrying to get node with node ID 7e8030c1d6b79c128fd7c054370219112e0884c4da3888b45e1301c1
+2025-06-10 14:41:07,668	INFO scripts.py:960 -- [37mLocal node IP[39m: [1m10.141.0.19[22m
+2025-06-10 14:41:09,746	SUCC scripts.py:973 -- [32m--------------------[39m
+2025-06-10 14:41:09,747	SUCC scripts.py:974 -- [32mRay runtime started.[39m
+2025-06-10 14:41:09,747	SUCC scripts.py:975 -- [32m--------------------[39m
+2025-06-10 14:41:09,747	INFO scripts.py:977 -- To terminate the Ray runtime, run
+2025-06-10 14:41:09,747	INFO scripts.py:978 -- [1m  ray stop[22m
+2025-06-10 14:41:09,747	INFO scripts.py:986 -- [36m[1m--block[22m[39m
+2025-06-10 14:41:09,747	INFO scripts.py:987 -- This command will now block forever until terminated by a signal.
+2025-06-10 14:41:09,747	INFO scripts.py:990 -- Running subprocesses are monitored and a message will be printed if any of them terminate unexpectedly. Subprocesses exit with SIGTERM will be treated as graceful, thus NOT reported.
+The OpenEye Toolkits are found to be installed but not licensed and therefore will not be used.
+The OpenEye Toolkits require a (free for academics) license, see https://docs.eyesopen.com/toolkits/python/quickstart-python/license.html
+The OpenEye Toolkits are found to be installed but not licensed and therefore will not be used.
+The OpenEye Toolkits require a (free for academics) license, see https://docs.eyesopen.com/toolkits/python/quickstart-python/license.html
+2025-06-10 02:41:42 PM Warning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.
+2025-06-10 02:41:43 PM JAX detected. Using JAX acceleration.
+2025-06-10 02:41:46 PM Moving :2SJ@C5 (1 atoms) to the origin...
+2025-06-10 02:41:46 PM Aligning :2SJ@C22 (1 atoms) with the z axis...
+The new x coordinate of P1 is: 0.000
+2025-06-10 02:41:55 PM Restraints appear to be consistent
+2025-06-10 02:41:55 PM Restraints appear to be consistent
+2025-06-10 02:41:55 PM Restraints appear to be consistent
+2025-06-10 14:41:55,243	INFO worker.py:1631 -- Connecting to existing Ray cluster at address: 10.141.0.16:5379...
+2025-06-10 14:41:55,253	INFO worker.py:1807 -- Connected to Ray cluster. View the dashboard at [1m[32mhttp://127.0.0.1:8265 [39m[22m
+[36m(pid=637289)[0m Warning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.
+[36m(pid=849700, ip=10.141.0.18)[0m Warning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.[32m [repeated 12x across cluster] (Ray deduplicates logs by default. Set RAY_DEDUP_LOGS=0 to disable log deduplication, or see https://docs.ray.io/en/master/ray-observability/user-guides/configure-logging.html#log-deduplication for more options.)[0m
+[36m(pid=847823, ip=10.141.0.19)[0m Warning on use of the timeseries module: If the inherent timescales of the system are long compared to those being analyzed, this statistical inefficiency may be an underestimate.  The estimate presumes the use of many statistically independent samples.  Tests should be performed to assess whether this condition is satisfied.   Be cautious in the interpretation of the data.[32m [repeated 11x across cluster][0m
