@@ -1,14 +1,14 @@
 #!/bin/bash
 
-#SBATCH --job-name="PL-ABFE-BRD4"
+#SBATCH --job-name="Log_Rep_2"
 #SBATCH --partition=168h
 #SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=1GB
-#SBATCH --time=2-00:00:00
+#SBATCH --time=5-00:00:00
 #SBATCH -q hca-csd765
 #SBATCH --gpus-per-task=8
-#SBATCH --nodes=4
+#SBATCH --nodes=1
 #SBATCH -A ddp325
 
 Folder=$(pwd)
@@ -68,4 +68,4 @@ for ((i = 1; i <= worker_num; i++)); do
     sleep 5
 done
 
-python -u main.py
+python -u main.py "$@"

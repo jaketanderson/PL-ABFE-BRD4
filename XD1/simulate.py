@@ -107,8 +107,8 @@ def run_minimization(
         f.write(XmlSerializer.serialize(system))
 
     integrator = LangevinMiddleIntegrator(0 * kelvin, friction, timestep)
-    # integrator.setRandomNumberSeed(12345)  # Replicate 0
-    integrator.setRandomNumberSeed(23456)  # Replicate 1
+    with open(f"{working_data}/RNG_SEED", "r") as f:
+        integrator.setRandomNumberSeed(int(f.read()))
     platform = Platform.getPlatformByName("CUDA")
     properties = {"DeviceIndex": "0"}
     simulation = Simulation(model.topology, system,
@@ -175,8 +175,8 @@ def run_heating_and_equil(
         system = XmlSerializer.deserialize(f.read())
 
     integrator = LangevinMiddleIntegrator(298.15 * kelvin, friction, timestep)
-    # integrator.setRandomNumberSeed(12345)  # Replicate 0
-    integrator.setRandomNumberSeed(23456)  # Replicate 1
+    with open(f"{working_data}/RNG_SEED", "r") as f:
+        integrator.setRandomNumberSeed(int(f.read()))
     platform = Platform.getPlatformByName("CUDA")
     properties = {"DeviceIndex": "0", "Precision": "mixed"}
     simulation = Simulation(model.topology, system,
@@ -263,7 +263,7 @@ def run_production(
     temperature = defaults["temperature"]
     friction = defaults["friction"]
     timestep = defaults["timestep"]
-    production_time = defaults["production_time"] / 10
+    production_time = defaults["production_time"]
     dcd_reporter_frequency = defaults["dcd_reporter_frequency"]
     state_reporter_frequency = defaults["state_reporter_frequency"]
 
@@ -274,8 +274,8 @@ def run_production(
         system = XmlSerializer.deserialize(f.read())
 
     integrator = LangevinMiddleIntegrator(temperature, friction, timestep)
-    # integrator.setRandomNumberSeed(12345)  # Replicate 0
-    integrator.setRandomNumberSeed(23456)  # Replicate 1
+    with open(f"{working_data}/RNG_SEED", "r") as f:
+        integrator.setRandomNumberSeed(int(f.read()))
     platform = Platform.getPlatformByName("CUDA")
     properties = {"DeviceIndex": "0", "Precision": "mixed"}
     simulation = Simulation(model.topology, system,
